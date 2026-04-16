@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { envVars } from "../config/env";
 import AppError from "../errorHelpers/AppError";
-import { prisma } from "../lib/prisma";
+import { auth } from "../lib/auth";
 import { CookieUtils } from "../utils/cookie";
 import { jwtUtils } from "../utils/jwt";
 import { Role, userStatus } from "../../generated/prisma/enums";
@@ -25,14 +25,10 @@ export const checkAuth =
       // 🔥 1. SESSION AUTH (PRIMARY)
       // =========================
       if (sessionToken) {
-        const session = await prisma.session.findFirst({
-          where: {
-            token: sessionToken,
-            expiresAt: { gt: new Date() },
-          },
-          include: {
-            user: true,
-          },
+        const session = await auth.api.getSession({
+          headers: {
+            "Cookie": `better-auth.session_token=${sessionToken}`
+          }
         });
 
         if (!session || !session.user) {
