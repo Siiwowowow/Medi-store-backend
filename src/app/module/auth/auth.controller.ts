@@ -230,41 +230,31 @@ const googleLogin = catchAsync((req: Request, res: Response) => {
 });
 
 const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
-  const redirectPath = req.query.redirect as string || "/dashboard";
-
   const sessionToken = req.cookies["better-auth.session_token"];
 
-  if(!sessionToken){
-      return res.redirect(`${envVars.FRONTEND_URL}/login?error=oauth_failed`);
+  if (!sessionToken) {
+    return res.redirect(`${envVars.FRONTEND_URL}/?login=error`);
   }
 
   const session = await auth.api.getSession({
-      headers:{
-          "Cookie" : `better-auth.session_token=${sessionToken}`
-      }
-  })
+    headers: {
+      Cookie: `better-auth.session_token=${sessionToken}`,
+    },
+  });
 
-  if (!session) {
-      return res.redirect(`${envVars.FRONTEND_URL}/login?error=no_session_found`);
-  }
-
-
-  if(session && !session.user){
-      return res.redirect(`${envVars.FRONTEND_URL}/login?error=no_user_found`);
+  if (!session || !session.user) {
+    return res.redirect(`${envVars.FRONTEND_URL}/?login=error`);
   }
 
   const result = await AuthService.googleLoginSuccess(session);
 
-  const {accessToken, refreshToken} = result;
+  const { accessToken, refreshToken } = result;
 
   tokenUtils.setAccessTokenCookie(res, accessToken);
   tokenUtils.setRefreshTokenCookie(res, refreshToken);
-// ?redirect=//profile -> /profile
-  const isValidRedirectPath = redirectPath.startsWith("/") && !redirectPath.startsWith("//");
-  const finalRedirectPath = isValidRedirectPath ? redirectPath : "/dashboard";
 
-  res.redirect(`${envVars.FRONTEND_URL}${finalRedirectPath}`);
-})
+  return res.redirect(`${envVars.FRONTEND_URL}/?login=success`);
+});
 
 const handleOAuthError = catchAsync((req: Request, res: Response) => {
   const error = req.query.error as string || "oauth_failed";
