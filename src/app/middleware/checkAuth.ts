@@ -17,32 +17,33 @@ export const checkAuth =
 
       let user: any = null;
 
+      // ✅ Session try — fail হলে JWT try করবে
       if (sessionToken) {
-        const session = await auth.api.getSession({
-          headers: {
-            Cookie: `better-auth.session_token=${sessionToken}`,
-          },
-        });
-
-        if (!session || !session.user) {
-          throw new AppError(status.UNAUTHORIZED, "Invalid session token");
+        try {
+          const session = await auth.api.getSession({
+            headers: {
+              Cookie: `better-auth.session_token=${sessionToken}`,
+            },
+          });
+          if (session?.user) {
+            user = session.user;
+          }
+        } catch {
+          user = null;
         }
-
-        user = session.user; // { id, role, email, ... }
       }
 
-      else if (accessToken) {
+      // ✅ Session না পেলে JWT দিয়ে try
+      if (!user && accessToken) {
         const verified = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
-
-        if (!verified.success) {
-          throw new AppError(status.UNAUTHORIZED, "Invalid access token");
+        if (verified.success) {
+          user = verified.data;
         }
-
-        user = verified.data; // { userId, role, email, ... }
       }
 
-      else {
-        throw new AppError(status.UNAUTHORIZED, "Unauthorized access! No token found");
+      // ✅ দুটোই fail
+      if (!user) {
+        throw new AppError(status.UNAUTHORIZED, "Unauthorized access! Please login again.");
       }
 
       const isMeRoute = req.originalUrl.endsWith("/me");
@@ -67,11 +68,15 @@ export const checkAuth =
         throw new AppError(status.FORBIDDEN, "Forbidden access");
       }
 
-      // ✅ KEY FIX: Session এ `id`, JWT payload এ `userId`
+      // ✅ IRequestUser এর সব fields
       req.user = {
         userId: user.userId || user.id,
         role: user.role,
         email: user.email,
+        isDeleted: user.isDeleted ?? false,
+        emailVerified: user.emailVerified ?? false,
+        status: user.status,
+        image: user.image ?? null,
       };
 
       next();
