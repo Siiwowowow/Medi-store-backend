@@ -1,3 +1,4 @@
+//src/app/config/seed.ts
 import { Role } from "../../generated/prisma/enums";
 import { envVars } from "../config/env";
 import { auth } from "../lib/auth";
@@ -5,6 +6,20 @@ import { prisma } from "../lib/prisma";
 
 export const seedSuperAdmin = async () => {
   try {
+    // 🧹 CLEANUP: Delete duplicate/broken accounts (temporary)
+    const cleanup = await prisma.account.deleteMany({
+      where: {
+        providerId: "credential",
+        OR: [
+          { password: null },
+          { id: { startsWith: "account_" } }
+        ]
+      }
+    });
+    if (cleanup.count > 0) {
+      console.log(`🧹 Cleaned up ${cleanup.count} broken account records.`);
+    }
+
     // ✅ CHECK IN ADMIN TABLE (BEST SOURCE OF TRUTH)
     const exists = await prisma.admin.findFirst({
       where: {
@@ -41,6 +56,7 @@ export const seedSuperAdmin = async () => {
         },
         data: {
           emailVerified: true,
+          status: "ACTIVE",
         },
       });
 

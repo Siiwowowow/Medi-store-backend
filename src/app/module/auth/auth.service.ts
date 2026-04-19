@@ -17,6 +17,8 @@ import {  userStatus } from "../../../generated/prisma/enums";
 /** Must match `session.expiresIn` in lib/auth.ts (seconds) → ms for Date */
 const SESSION_DURATION_MS = 60 * 60 * 24 * 1000;
 
+// src/app/module/auth/auth.service.ts (শুধু পরিবর্তিত অংশ)
+
 const registerUSer = async (
   payload: IRegisterUserPayload,
   imageUrl?: string
@@ -31,25 +33,22 @@ const registerUSer = async (
     throw new AppError(status.BAD_REQUEST, "Registration failed");
   }
 
-  // ✅ SAFE USER SYNC (FIXED PART)
+  // ✅ SAFE USER SYNC
   await prisma.user.upsert({
-  where: {
-    email: data.user.email, // ✅ FIX
-  },
-  update: {
-    name: data.user.name,
-    image: imageUrl ?? null,
-  },
-  create: {
-    id: data.user.id,
-    email: data.user.email,
-    name: data.user.name,
-    image: imageUrl ?? null,
-  },
-});
+    where: { email: data.user.email },
+    update: {
+      name: data.user.name,
+      image: imageUrl ?? null,
+    },
+    create: {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name,
+      image: imageUrl ?? null,
+    },
+  });
 
-  const token = data.token;
-
+  // 🔥 FIXED: JWT তে সব necessary ফিল্ড যোগ করা
   const accessToken = tokenUtils.getAccessToken({
     userId: data.user.id,
     role: data.user.role,
@@ -58,6 +57,7 @@ const registerUSer = async (
     status: data.user.status,
     isDeleted: data.user.isDeleted,
     emailVerified: data.user.emailVerified,
+    needPasswordChange: data.user.needPasswordChange, // ✅ ADDED
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
@@ -68,18 +68,18 @@ const registerUSer = async (
     status: data.user.status,
     isDeleted: data.user.isDeleted,
     emailVerified: data.user.emailVerified,
+    needPasswordChange: data.user.needPasswordChange, // ✅ ADDED
   });
 
   return {
     user: data.user,
-    token,
+    token: data.token,
     accessToken,
     refreshToken,
     message: "OTP sent to email",
     email: data.user.email,
   };
 };
-
 
 const loginUser = async (payload: ILoginUserPayload) => {
   const { email, password } = payload;
@@ -92,8 +92,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
     throw new AppError(status.UNAUTHORIZED, "Invalid email or password");
   }
 
-  const token = data.token;
-
+  // 🔥 FIXED: JWT তে সব necessary ফিল্ড
   const accessToken = tokenUtils.getAccessToken({
     userId: data.user.id,
     role: data.user.role,
@@ -102,6 +101,7 @@ const loginUser = async (payload: ILoginUserPayload) => {
     status: data.user.status,
     isDeleted: data.user.isDeleted,
     emailVerified: data.user.emailVerified,
+    needPasswordChange: data.user.needPasswordChange, // ✅ ADDED
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
@@ -112,54 +112,27 @@ const loginUser = async (payload: ILoginUserPayload) => {
     status: data.user.status,
     isDeleted: data.user.isDeleted,
     emailVerified: data.user.emailVerified,
+    needPasswordChange: data.user.needPasswordChange, // ✅ ADDED
   });
 
-  // Parse token expiration from JWT payload
-  const decodedAccessToken: any = jwtUtils.verifyToken(accessToken, envVars.ACCESS_TOKEN_SECRET);
-  const decodedRefreshToken: any = jwtUtils.verifyToken(refreshToken, envVars.REFRESH_TOKEN_SECRET);
-
-  const accessTokenExpiresAt = decodedAccessToken.success && decodedAccessToken.data?.exp 
-    ? new Date(decodedAccessToken.data.exp * 1000) 
-    : new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  const refreshTokenExpiresAt = decodedRefreshToken.success && decodedRefreshToken.data?.exp 
-    ? new Date(decodedRefreshToken.data.exp * 1000) 
-    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  // Update Account record with new tokens
-  await prisma.account.upsert({
-    where: {
-      id: `account_${data.user.id}_credential`,
-    },
-    create: {
-      id: `account_${data.user.id}_credential`,
-      accountId: "credential",
-      providerId: "credential",
-      userId: data.user.id,
+  await prisma.account.updateMany({
+    where: { userId: data.user.id, providerId: "credential" },
+    data: {
       accessToken: accessToken,
       refreshToken: refreshToken,
-      accessTokenExpiresAt: accessTokenExpiresAt,
-      refreshTokenExpiresAt: refreshTokenExpiresAt,
-    },
-    update: {
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      accessTokenExpiresAt: accessTokenExpiresAt,
-      refreshTokenExpiresAt: refreshTokenExpiresAt,
+      accessTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
   });
 
   return {
     user: data.user,
-    token,
+    token: data.token,
     accessToken,
     refreshToken,
   };
 };
 
-// =====================
-// 🔥 FIXED GET ME SERVICE
-// =====================
 const getMe = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -167,9 +140,12 @@ const getMe = async (userId: string) => {
       id: true,
       name: true,
       email: true,
-      image: true, // ✅ MUST
+      image: true,
       role: true,
       status: true,
+      emailVerified: true, // ✅ ADDED
+      needPasswordChange: true, // ✅ ADDED
+      isDeleted: true,
     },
   });
 
@@ -211,6 +187,7 @@ const getNewToken = async (refreshToken : string, sessionToken : string) => {
         status: data.status,
         isDeleted: data.isDeleted,
         emailVerified: data.emailVerified,
+        needPasswordChange: data.needPasswordChange,
     });
 
     const newRefreshToken = tokenUtils.getRefreshToken({
@@ -221,6 +198,7 @@ const getNewToken = async (refreshToken : string, sessionToken : string) => {
         status: data.status,
         isDeleted: data.isDeleted,
         emailVerified: data.emailVerified,
+        needPasswordChange: data.needPasswordChange,
     });
 
     const { token } = await prisma.session.update({
@@ -246,22 +224,13 @@ const getNewToken = async (refreshToken : string, sessionToken : string) => {
         ? new Date(decodedRefreshToken.data.exp * 1000) 
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Update Account with new tokens
-    await prisma.account.upsert({
+    // ✅ Update existing Account record with new tokens (WITHOUT creating duplicates)
+    await prisma.account.updateMany({
         where: {
-            id: `account_${data.userId}_credential`,
-        },
-        create: {
-            id: `account_${data.userId}_credential`,
-            accountId: "credential",
-            providerId: "credential",
             userId: data.userId,
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-            accessTokenExpiresAt: accessTokenExpiresAt,
-            refreshTokenExpiresAt: refreshTokenExpiresAt,
+            providerId: "credential",
         },
-        update: {
+        data: {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
             accessTokenExpiresAt: accessTokenExpiresAt,
@@ -378,6 +347,7 @@ const changePassword = async (
             status: user.status,
             isDeleted: user.isDeleted,
             emailVerified: user.emailVerified,
+            needPasswordChange: user.needPasswordChange,
         });
 
         const refreshToken = tokenUtils.getRefreshToken({
@@ -388,6 +358,7 @@ const changePassword = async (
             status: user.status,
             isDeleted: user.isDeleted,
             emailVerified: user.emailVerified,
+            needPasswordChange: user.needPasswordChange,
         });
 
         // Parse token expiration from JWT payload and save to Account
@@ -568,6 +539,10 @@ const googleLoginSuccess = async (session: Record<string, any>) => {
     role: user.role,
     name: user.name,
     email: user.email,
+    status: user.status,
+    isDeleted: user.isDeleted,
+    emailVerified: user.emailVerified,
+    needPasswordChange: user.needPasswordChange,
   });
 
   const refreshToken = tokenUtils.getRefreshToken({
@@ -575,6 +550,10 @@ const googleLoginSuccess = async (session: Record<string, any>) => {
     role: user.role,
     name: user.name,
     email: user.email,
+    status: user.status,
+    isDeleted: user.isDeleted,
+    emailVerified: user.emailVerified,
+    needPasswordChange: user.needPasswordChange,
   });
 
   return {
