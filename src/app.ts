@@ -1,48 +1,50 @@
-// backend/src/app.ts (updated CORS)
-import cookieParser from "cookie-parser";
 import express, { Application, Request, Response } from "express";
-import cors from "cors";
 import { IndexRoutes } from "./app/routes";
 import { notFound } from "./app/middleware/notFound";
-import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./app/lib/auth";
+import path from "path";
+import qs from "qs"
+import { envVars } from "./app/config/env";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
+
 
 const app: Application = express();
+app.set("query parser", (str : string) => qs.parse(str));
 
-// 🔥 CORS configuration
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Accept"],
-    exposedHeaders: ["Set-Cookie", "Cookie"], // 🔥 Important!
-    maxAge: 86400, // Cache preflight for 24 hours
-  })
-);
+app.set("view engine", "ejs");
+app.set("views",path.resolve(process.cwd(), `src/app/templates`) )
+app.post("/webhook", express.raw({ type: "application/json" }),async(req:Request,res:Response)=>{
+  console.log("webhook received",req.body)
+  res.status(200).json({received:true})
 
-// Body parsing
-app.use(express.json());
+})
+
+// Enable CORS with credentials
+app.use(cors({
+    origin : [envVars.FRONTEND_URL, envVars.BETTER_AUTH_URL, "http://localhost:3000", "http://localhost:5000"],
+    credentials : true,
+    methods : ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders : ["Content-Type", "Authorization"]
+}))
+app.use("/api/auth", toNodeHandler(auth))
+
+// Enable URL-encoded form data parsing
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware to parse JSON bodies
+app.use(express.json());
 app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
 
-// Better Auth handler
-app.use("/api/auth", toNodeHandler(auth));
+app.use("/api/v1/", IndexRoutes);
 
-// API routes
-app.use("/api/v1", IndexRoutes);
-
-// Test route
-app.get("/", (req: Request, res: Response) => {
-  res.json({
-    success: true,
-    message: "API working",
-  });
+// Basic route
+app.get('/', (req: Request, res: Response) => {
+  res.send('Hello, TypeScript + Express!');
 });
-
-// Error handlers
-app.use(globalErrorHandler);
-app.use(notFound);
-
+app.use(globalErrorHandler)
+app.use(notFound)
 export default app;

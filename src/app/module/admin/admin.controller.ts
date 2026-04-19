@@ -1,75 +1,109 @@
+//src>app>module>admin>admin.controller.ts
 import { Request, Response } from "express";
+import status from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { AdminService } from "./admin.service";
-import status from "http-status";
+import { IRequestUser } from "../../interfaces/requestUser.interface";
+import { IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
 
-const createAdmin = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdminService.createAdmin(req.body);
+const getAllAdmins = catchAsync(
+    async (req: Request, res: Response) => {
+        const result = await AdminService.getAllAdmins();
 
-  sendResponse(res, {
-    httpCode: status.CREATED,
-    success: true,
-    message: "Admin created successfully",
-    data: result,
-  });
-});
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "Admins fetched successfully",
+            data: result,
+        })
+    }
+)
 
-const getAllAdmins = catchAsync(async (_req: Request, res: Response) => {
-  const result = await AdminService.getAllAdmins();
+const getAdminById = catchAsync(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
 
-  sendResponse(res, {
-    httpCode: status.OK,
-    success: true,
-    message: "Admins fetched successfully",
-    data: result,
-  });
-});
+        const admin = await AdminService.getAdminById(id as string);
 
-const getSingleAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "Admin fetched successfully",
+            data: admin,
+        })
+    }
+)
 
-  const result = await AdminService.getSingleAdmin(userId as string);
+const updateAdmin = catchAsync(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const payload = req.body;
 
-  sendResponse(res, {
-    httpCode: status.OK,
-    success: true,
-    message: "Admin fetched successfully",
-    data: result,
-  });
-});
+        const updatedAdmin = await AdminService.updateAdmin(id as string, payload);
 
-const updateAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "Admin updated successfully",
+            data: updatedAdmin,
+        })
+    }
+)
 
-  const result = await AdminService.updateAdmin(userId as string, req.body);
+const deleteAdmin = catchAsync(
+    async (req: Request, res: Response) => {
+        const { id } = req.params;
+        const user = req.user as IRequestUser;
 
-  sendResponse(res, {
-    httpCode: status.OK,
-    success: true,
-    message: "Admin updated successfully",
-    data: result,
-  });
-});
+        const result = await AdminService.deleteAdmin(id as string, user);
 
-const deleteAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { userId } = req.params;
-  const user= req.user
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "Admin deleted successfully",
+            data: result,
+        })
+    }
+)
 
-  await AdminService.deleteAdmin(userId as string, user);
+const changeUserStatus = catchAsync(
+    async (req: Request, res: Response) => {
+        const payload: IChangeUserStatusPayload = req.body;
+        const currentUser = req.user as IRequestUser;
+        
+        const result = await AdminService.changeUserStatus(payload, currentUser);
+        
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "User status updated successfully",
+            data: result,
+        })
+    }
+);
 
-  sendResponse(res, {
-    httpCode: status.OK,
-    success: true,
-    message: "Admin deleted successfully",
-    data: null,
-  });
-});
+const changeUserRole = catchAsync(
+    async (req: Request, res: Response) => {
+        const payload: IChangeUserRolePayload = req.body;
+        const currentUser = req.user as IRequestUser;
+        
+        const result = await AdminService.changeUserRole(payload, currentUser);
+        
+        sendResponse(res, {
+            httpCode: status.OK,
+            success: true,
+            message: "User role updated successfully",
+            data: result,
+        })
+    }
+);
 
 export const AdminController = {
-  createAdmin,
-  getAllAdmins,
-  getSingleAdmin,
-  updateAdmin,
-  deleteAdmin,
+    getAllAdmins,
+    updateAdmin,
+    deleteAdmin,
+    getAdminById,
+    changeUserStatus,
+    changeUserRole
 };

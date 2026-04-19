@@ -1,150 +1,177 @@
-import { prisma } from "../../lib/prisma";
-import AppError from "../../errorHelpers/AppError";
+//src/app/module/admin/admin.service.ts
 import status from "http-status";
-import { ICreateAdmin, IUpdateAdmin } from "./admin.interface";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { Role, userStatus } from "../../../generated/prisma/enums";
-
-const createAdmin = async (payload: ICreateAdmin) => {
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-  });
-
-  if (!user) {
-    throw new AppError(status.NOT_FOUND, "User not found");
-  }
-
-  const admin = await prisma.admin.create({
-    data: {
-      userId: payload.userId,
-      permissions: payload.permissions ?? [],
-    },
-    include: {
-      user: true,
-    },
-  });
-
-  return admin;
-};
+import { prisma } from "../../lib/prisma";
+import { IUpdateAdminPayload, IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
+import AppError from "../../errorHelpers/AppError";
+import { userStatus } from "../../../generated/prisma/enums";
 
 const getAllAdmins = async () => {
-  return prisma.admin.findMany({
-    include: {
-      user: true,
-    },
-  });
-};
+    const admins = await prisma.admin.findMany({
+        include: {
+            user: true,
+        }
+    })
+    return admins;
+}
 
-const getSingleAdmin = async (userId: string) => {
-  const admin = await prisma.admin.findUnique({
-    where: { userId },
-    include: { user: true },
-  });
+const getAdminById = async (id: string) => {
+    const admin = await prisma.admin.findUnique({
+        where: {
+            id,
+        },
+        include: {
+            user: true,
+        }
+    })
+    return admin;
+}
 
-  if (!admin) {
-    throw new AppError(status.NOT_FOUND, "Admin not found");
-  }
+const updateAdmin = async (id: string, payload: IUpdateAdminPayload) => {
+    //TODO: Validate who is updating the admin user. Only super admin can update admin user and only super admin can update super admin user but admin user cannot update super admin user
 
-  return admin;
-};
+    const isAdminExist = await prisma.admin.findUnique({
+        where: {
+            id,
+        }
+    })
 
-const updateAdmin = async (userId: string, payload: IUpdateAdmin) => {
-  const admin = await prisma.admin.update({
-    where: { userId },
-    data: payload,
-    include: { user: true },
-  });
+    if (!isAdminExist) {
+        throw new AppError(status.NOT_FOUND, "Admin Or Super Admin not found");
+    }
 
-  return admin;
-};
+    const { admin } = payload;
 
+    const updatedAdmin = await prisma.admin.update({
+        where: {
+            id,
+        },
+        data: {
+            ...admin,
+        }
+    })
+
+    return updatedAdmin;
+}
+
+//soft delete admin user by setting isDeleted to true and also delete the user session and account
 const deleteAdmin = async (id: string, user: IRequestUser) => {
-  // 🔍 find admin
-  const isAdminExist = await prisma.admin.findUnique({
-    where: { id },
-    include: {
-      user: true, // 🔥 need user role
-    },
-  });
+    //TODO: Validate who is deleting the admin user. Only super admin can delete admin user and only super admin can delete super admin user but admin user cannot delete super admin user
 
-  if (!isAdminExist || !isAdminExist.user) {
-    throw new AppError(status.NOT_FOUND, "Admin not found");
-  }
+    const isAdminExist = await prisma.admin.findUnique({
+        where: {
+            id,
+        }
+    })
 
-  // ❌ self delete block
-  if (isAdminExist.userId === user.userId) {
-    throw new AppError(status.BAD_REQUEST, "You cannot delete yourself");
-  }
+    if (!isAdminExist) {
+        throw new AppError(status.NOT_FOUND, "Admin Or Super Admin not found");
+    }
 
-  const targetRole = isAdminExist.user.role;
-  const currentUserRole = user.role;
+    if(isAdminExist.id === user.userId){
+        throw new AppError(status.BAD_REQUEST, "You cannot delete yourself");
+    }
 
-  // =========================
-  // 🔥 ROLE BASED LOGIC
-  // =========================
+    const result = await prisma.$transaction(async (tx) => {
+        await tx.admin.update({
+            where: { id },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        })
 
-  // ❌ ADMIN cannot delete SUPER_ADMIN
-  if (
-    currentUserRole === Role.ADMIN &&
-    targetRole === Role.SUPER_ADMIN
-  ) {
-    throw new AppError(
-      status.FORBIDDEN,
-      "Admin cannot delete Super Admin"
-    );
-  }
+        await tx.user.update({
+            where: { id: isAdminExist.userId },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+                status: userStatus.DELETED
+            },
+        })
 
-  // ❌ USER cannot delete anyone
-  if (currentUserRole === Role.USER) {
-    throw new AppError(
-      status.FORBIDDEN,
-      "You are not authorized"
-    );
-  }
+        await tx.session.deleteMany({
+            where: { userId: isAdminExist.userId }
+        })
 
-  // =========================
-  // 🔥 DELETE TRANSACTION
-  // =========================
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.admin.update({
-      where: { id },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
+        await tx.account.deleteMany({
+            where: { userId: isAdminExist.userId }
+        })
+
+        const admin = await getAdminById(id);
+
+        return admin;
+    })
+
+    return result;
+}
+
+const changeUserStatus = async (payload: IChangeUserStatusPayload, currentUser: IRequestUser) => {
+    // TODO: Add authorization logic - only super admin can change user status
+    // Check if current user is super admin
+    
+    const { userId, status: userStatus } = payload; // Renamed to avoid conflict with status import
+    
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+        where: { id: userId }
     });
-
-    await tx.user.update({
-      where: { id: isAdminExist.userId },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-        status: userStatus.DELETED,
-      },
+    
+    if (!user) {
+        throw new AppError(status.NOT_FOUND, "User not found");
+    }
+    
+    // Prevent self-status change if needed
+    if (user.id === currentUser.userId) {
+        throw new AppError(status.BAD_REQUEST, "You cannot change your own status");
+    }
+    
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            status: userStatus // Now using the correct field name
+        }
     });
+    
+    return updatedUser;
+}
 
-    await tx.session.deleteMany({
-      where: { userId: isAdminExist.userId },
+const changeUserRole = async (payload: IChangeUserRolePayload, currentUser: IRequestUser) => {
+    // TODO: Add authorization logic - only super admin can change user roles
+    // Check if current user is super admin
+    
+    const { userId, role } = payload;
+    
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+        where: { id: userId }
     });
-
-    await tx.account.deleteMany({
-      where: { userId: isAdminExist.userId },
+    
+    if (!user) {
+        throw new AppError(status.NOT_FOUND, "User not found");
+    }
+    
+    // Prevent self-role change if needed
+    if (user.id === currentUser.userId) {
+        throw new AppError(status.BAD_REQUEST, "You cannot change your own role");
+    }
+    
+    // Update user role
+    const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            role: role
+        }
     });
-
-    return await tx.admin.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-  });
-
-  return result;
-};
-
+    
+    return updatedUser;
+}
 
 export const AdminService = {
-  createAdmin,
-  getAllAdmins,
-  getSingleAdmin,
-  updateAdmin,
-  deleteAdmin,
-};
+    getAllAdmins,
+    getAdminById,
+    updateAdmin,
+    deleteAdmin,
+    changeUserRole,
+    changeUserStatus
+}
