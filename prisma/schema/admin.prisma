@@ -1,18 +1,41 @@
 model Admin {
-    id            String    @id @default(uuid(7))
-    name          String
-    email         String    @unique
-    profilePhoto  String?
-    contactNumber String?
-    isDeleted     Boolean   @default(false)
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
-    deletedAt     DateTime?
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  phoneNumber   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-    userId String @unique
-    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([email])
-    @@index([isDeleted])
-    @@map("admins")
+  @@map("admins")
+}
+model Seller {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  shopName      String
+  shopAddress   String?
+  phoneNumber   String?
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicines     Medicine[]
+
+  @@map("sellers")
+}
+model Customer {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  phoneNumber      String?
+  shippingAddress  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders           Order[]
+  reviews          Review[]
+  cart             Cart?
+
+  @@map("customers")
 }

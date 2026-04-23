@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-//src/app/middleware/checkAuth.ts
 import { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { envVars } from "../config/env";
@@ -7,7 +6,7 @@ import AppError from "../errorHelpers/AppError";
 import { auth } from "../lib/auth";
 import { CookieUtils } from "../utils/cookie";
 import { jwtUtils } from "../utils/jwt";
-import { Role, userStatus } from "../../generated/prisma/enums";
+import { Role, UserStatus } from "../../generated/prisma/enums";  // 👈 UserStatus (capital U)
 
 export const checkAuth =
   (...authRoles: Role[]) =>
@@ -49,15 +48,17 @@ export const checkAuth =
 
       const isMeRoute = req.originalUrl.endsWith("/me");
 
+      // 👇 Use UserStatus (capital U) - not userStatus
       if (
-        user.status === userStatus.BLOCKED ||
-        user.status === userStatus.DELETED ||
+        user.status === UserStatus.BLOCKED ||
+        user.status === UserStatus.DELETED ||
         user.isDeleted
       ) {
         throw new AppError(status.UNAUTHORIZED, "User is not active");
       }
 
-      if (!isMeRoute && user.status === userStatus.PENDING_VERIFICATION) {
+      // 👇 Use UserStatus.PENDING_VERIFICATION
+      if (!isMeRoute && user.status === UserStatus.PENDING_VERIFICATION) {
         throw new AppError(status.FORBIDDEN, "Account pending verification. Please verify your email.");
       }
 

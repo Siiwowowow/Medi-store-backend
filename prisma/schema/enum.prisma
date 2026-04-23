@@ -1,11 +1,13 @@
-enum Role{
-    SUPER_ADMIN
-    ADMIN
-    USER
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  SELLER
+  CUSTOMER
 }
-enum userStatus{
-    PENDING_VERIFICATION
-    BLOCKED
-    DELETED
-    ACTIVE
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  PENDING_VERIFICATION
+  DELETED
 }

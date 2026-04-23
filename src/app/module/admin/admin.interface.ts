@@ -1,5 +1,4 @@
-//src/app/module/admin/admin.interface.ts
-import { Role, userStatus } from "../../../generated/prisma/enums"; // Import from your generated Prisma enums
+import { Role, UserStatus } from "../../../generated/prisma/enums"; // 👈 Capital U
 
 export interface IUpdateAdminPayload {
     admin?: {
@@ -11,10 +10,10 @@ export interface IUpdateAdminPayload {
 
 export interface IChangeUserStatusPayload {
     userId: string;
-    status: userStatus; // Changed from userStatus to status to match service usage
+    status: UserStatus; // 👈 Capital U
 }
 
 export interface IChangeUserRolePayload {
     userId: string;
-    role: Role; // Use Role from your generated Prisma enums, not from better-auth
+    role: Role;
 }

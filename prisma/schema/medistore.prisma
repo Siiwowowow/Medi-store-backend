@@ -1,0 +1,140 @@
+// prisma/schema/medistore.prisma
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  image       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  medicines   Medicine[]
+
+  @@map("categories")
+}
+
+model Medicine {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String
+  price       Decimal   @db.Decimal(10, 2)
+  stock       Int       @default(0)
+  manufacturer String
+  genericName String?
+  dosageForm  String?
+  strength    String?
+  image       String?
+  isActive    Boolean   @default(true)
+  
+  categoryId  String?
+  sellerId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  category    Category? @relation(fields: [categoryId], references: [id])
+  seller      Seller    @relation(fields: [sellerId], references: [id])
+  orderItems  OrderItem[]
+  reviews     Review[]
+  cartItems   CartItem[]  // 👈 এই লাইন যোগ করুন
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@map("medicines")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  customerId      String
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  shippingAddress String
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  notes           String?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  items           OrderItem[]
+  reviews         Review[]    // 👈 এই লাইন যোগ করুন
+
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String   @id @default(uuid())
+  orderId       String
+  medicineId    String
+  medicineName  String
+  medicineImage String?
+  quantity      Int
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  totalPrice    Decimal  @db.Decimal(10, 2)
+
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medicine      Medicine @relation(fields: [medicineId], references: [id])
+
+  @@unique([orderId, medicineId])
+  @@map("order_items")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int
+  comment     String?
+  customerId  String
+  medicineId  String
+  orderId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer    Customer @relation(fields: [customerId], references: [id])
+  medicine    Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  order       Order?   @relation(fields: [orderId], references: [id])  // 👈 এই লাইন ঠিক আছে
+
+  @@unique([customerId, medicineId])
+  @@index([medicineId])
+  @@map("reviews")
+}
+
+model Cart {
+  id         String      @id @default(uuid())
+  customerId String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  items      CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  cartId     String
+  medicineId String
+  quantity   Int      @default(1)
+
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  medicine   Medicine @relation(fields: [medicineId], references: [id])  // 👈 এই লাইন ঠিক আছে
+
+  @@unique([cartId, medicineId])
+  @@map("cart_items")
+}

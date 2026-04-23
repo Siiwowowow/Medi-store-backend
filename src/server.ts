@@ -1,77 +1,79 @@
 import { Server } from "http";
 import app from "./app";
-import { seedSuperAdmin } from "./app/config/seed";
+import { seedSuperAdmin, seedCategories, seedAdmin, seedSampleSeller, seedSampleCustomer } from "./app/config/seed";  // 👈 seedCategories যোগ করুন
 import { envVars } from "./app/config/env";
 
+let server: Server;
 
-let server : Server;
-const bootstrap = async() => {
+const bootstrap = async () => {
     try {
+        // সব seed চালান
         await seedSuperAdmin();
+        await seedAdmin();
+        await seedSampleSeller();
+        await seedSampleCustomer();
+        await seedCategories();
+        
         server = app.listen(envVars.PORT, () => {
             console.log(`Server is running on http://localhost:${envVars.PORT}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
-    }   
+    }
 }
 
 // SIGTERM signal handler
 process.on("SIGTERM", () => {
     console.log("SIGTERM signal received. Shutting down server...");
 
-    if(server){
+    if (server) {
         server.close(() => {
             console.log("Server closed gracefully.");
-            process.exit(1);
+            process.exit(0);  // 👈 0 মানে success exit
         });
-    } 
-    
-    process.exit(1);
-    
-})
+    } else {
+        process.exit(0);
+    }
+});
 
 // SIGINT signal handler
-
 process.on("SIGINT", () => {
     console.log("SIGINT signal received. Shutting down server...");
 
-    if(server){
+    if (server) {
         server.close(() => {
             console.log("Server closed gracefully.");
-            process.exit(1);
+            process.exit(0);  // 👈 0 মানে success exit
         });
-
+    } else {
+        process.exit(0);
     }
-
-    process.exit(1);
 });
 
-//uncaught exception handler
+// uncaught exception handler
 process.on('uncaughtException', (error) => {
     console.log("Uncaught Exception Detected... Shutting down server", error);
 
-    if(server){
+    if (server) {
         server.close(() => {
-            process.exit(1);
-        })
+            process.exit(1);  // 👈 1 মানে error exit
+        });
+    } else {
+        process.exit(1);
     }
+});
 
-    process.exit(1);
-})
-
+// unhandled rejection handler
 process.on("unhandledRejection", (error) => {
     console.log("Unhandled Rejection Detected... Shutting down server", error);
 
-    if(server){
+    if (server) {
         server.close(() => {
             process.exit(1);
-        })
+        });
+    } else {
+        process.exit(1);
     }
-
-    process.exit(1);
-})
-
-//unhandled rejection handler
+});
 
 bootstrap();
