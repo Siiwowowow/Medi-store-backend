@@ -51,7 +51,6 @@ const getCategoryById = async (id: string) => {
     include: {
       medicines: {
         where: { isActive: true },
-        take: 10,
         select: {
           id: true,
           name: true,
@@ -60,7 +59,15 @@ const getCategoryById = async (id: string) => {
           stock: true,
           image: true,
           manufacturer: true,
-        }
+          description: true,
+          _count: {
+            select: { reviews: true }
+          }
+        },
+        take: 20,
+      },
+      _count: {
+        select: { medicines: true }
       }
     }
   });
@@ -69,19 +76,86 @@ const getCategoryById = async (id: string) => {
     throw new AppError(status.NOT_FOUND, "Category not found");
   }
   
-  return category;
+  // Calculate average rating for each medicine
+  const medicinesWithRating = await Promise.all(
+    (category.medicines || []).map(async (medicine) => {
+      const reviews = await prisma.review.aggregate({
+        where: { medicineId: medicine.id },
+        _avg: { rating: true },
+      });
+      
+      return {
+        ...medicine,
+        price: medicine.price.toNumber(),
+        avgRating: reviews._avg.rating || 0,
+      };
+    })
+  );
+  
+  return {
+    ...category,
+    medicines: medicinesWithRating,
+  };
 };
 
 const getCategoryBySlug = async (slug: string) => {
   const category = await prisma.category.findUnique({
-    where: { slug }
+    where: { slug },
+    include: {
+      medicines: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          price: true,
+          stock: true,
+          image: true,
+          manufacturer: true,
+          description: true,
+          _count: {
+            select: { reviews: true }
+          }
+        }
+      },
+      _count: {
+        select: { medicines: true }
+      }
+    }
   });
   
   if (!category) {
     throw new AppError(status.NOT_FOUND, "Category not found");
   }
   
-  return category;
+  // Calculate average rating for each medicine
+  const medicinesWithRating = await Promise.all(
+    (category.medicines || []).map(async (medicine) => {
+      const reviews = await prisma.review.aggregate({
+        where: { medicineId: medicine.id },
+        _avg: { rating: true },
+      });
+      
+      return {
+        ...medicine,
+        price: medicine.price.toNumber(),
+        avgRating: reviews._avg.rating || 0,
+      };
+    })
+  );
+  
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    image: category.image,
+    isActive: category.isActive,
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt,
+    totalMedicines: category._count.medicines,
+    medicines: medicinesWithRating,
+  };
 };
 
 const updateCategory = async (id: string, payload: IUpdateCategoryPayload) => {
