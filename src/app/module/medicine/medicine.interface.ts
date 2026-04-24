@@ -8,7 +8,7 @@ export interface ICreateMedicinePayload {
   dosageForm?: string;
   strength?: string;
   categoryId?: string;
-  image?: string;
+  image?: string;  // ✅ Image URL from Cloudinary
 }
 
 export interface IUpdateMedicinePayload extends Partial<ICreateMedicinePayload> {

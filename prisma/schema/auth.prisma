@@ -19,7 +19,8 @@ model User {
   customer           Customer?
   sessions           Session[]
   accounts           Account[]
-
+  searchHistories    SearchHistory[]
+  
   @@map("users")
 }
 

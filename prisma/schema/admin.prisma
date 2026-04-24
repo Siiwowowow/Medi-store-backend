@@ -36,6 +36,7 @@ model Customer {
   orders           Order[]
   reviews          Review[]
   cart             Cart?
+  wishlists        Wishlist[]
 
   @@map("customers")
 }

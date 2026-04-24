@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import status from "http-status";
+import statusCode from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { MedicineService } from "./medicine.service";
@@ -8,10 +8,33 @@ import { getParamId } from "../../utils/param.utils";
 
 const createMedicine = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
-  const result = await MedicineService.createMedicine(user.userId, req.body);
+  
+  // ✅ Get uploaded file
+  const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0];
+  
+  // ✅ Convert string to number for price and stock
+  const payload = {
+    ...req.body,
+    price: req.body.price ? Number(req.body.price) : undefined,
+    stock: req.body.stock ? Number(req.body.stock) : undefined,
+  };
+  
+  // ✅ Remove quotes if present (from form-data)
+  if (typeof payload.name === 'string') {
+    payload.name = payload.name.replace(/^"|"$/g, '');
+  }
+  if (typeof payload.description === 'string') {
+    payload.description = payload.description.replace(/^"|"$/g, '');
+  }
+  if (typeof payload.manufacturer === 'string') {
+    payload.manufacturer = payload.manufacturer.replace(/^"|"$/g, '');
+  }
+  
+  const result = await MedicineService.createMedicine(user.userId, payload, imageFile);
   
   sendResponse(res, {
-    httpCode: status.CREATED,
+    httpCode: statusCode.CREATED,
     success: true,
     message: "Medicine added successfully",
     data: result,
@@ -40,7 +63,7 @@ const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
   });
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicines fetched successfully",
     data: result.medicines,
@@ -53,7 +76,7 @@ const getMedicineById = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getMedicineById(id);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicine fetched successfully",
     data: result,
@@ -65,7 +88,7 @@ const getMedicineBySlug = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getMedicineBySlug(slug);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicine fetched successfully",
     data: result,
@@ -75,10 +98,15 @@ const getMedicineBySlug = catchAsync(async (req: Request, res: Response) => {
 const updateMedicine = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const id = getParamId(req.params.id);
-  const result = await MedicineService.updateMedicine(user.userId, id, req.body);
+  
+  // ✅ Get uploaded file
+  const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0];
+  
+  const result = await MedicineService.updateMedicine(user.userId, id, req.body, imageFile);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicine updated successfully",
     data: result,
@@ -91,7 +119,7 @@ const deleteMedicine = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.deleteMedicine(user.userId, id);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicine deleted successfully",
     data: result,
@@ -110,7 +138,7 @@ const getSellerMedicines = catchAsync(async (req: Request, res: Response) => {
   });
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicines fetched successfully",
     data: result.medicines,
@@ -122,7 +150,7 @@ const getManufacturers = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getManufacturers();
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Manufacturers fetched successfully",
     data: result,
@@ -134,7 +162,7 @@ const getMedicineStats = catchAsync(async (req: Request, res: Response) => {
   const result = await MedicineService.getMedicineStats(user.userId);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Medicine stats fetched successfully",
     data: result,

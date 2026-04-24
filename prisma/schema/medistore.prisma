@@ -39,6 +39,7 @@ model Medicine {
   orderItems  OrderItem[]
   reviews     Review[]
   cartItems   CartItem[]  // 👈 এই লাইন যোগ করুন
+  wishlists   Wishlist[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -137,4 +138,30 @@ model CartItem {
 
   @@unique([cartId, medicineId])
   @@map("cart_items")
+}
+model Wishlist {
+  id         String   @id @default(uuid())
+  customerId String
+  medicineId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, medicineId])
+  @@map("wishlists")
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  query     String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([query])
+  @@map("search_history")
 }

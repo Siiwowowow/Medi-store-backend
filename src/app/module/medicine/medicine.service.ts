@@ -3,6 +3,7 @@ import status from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateMedicinePayload, IMedicineFilters, IUpdateMedicinePayload } from "./medicine.interface";
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config";
 
 const generateSlug = (name: string): string => {
   return name
@@ -11,7 +12,28 @@ const generateSlug = (name: string): string => {
     .replace(/^-|-$/g, '');
 };
 
-const createMedicine = async (sellerUserId: string, payload: ICreateMedicinePayload) => {
+// ✅ Upload medicine image to Cloudinary
+const uploadMedicineImage = async (file: Express.Multer.File): Promise<string> => {
+  const uploadResult = await uploadFileToCloudinary(file.buffer, file.originalname);
+  return uploadResult.secure_url;
+};
+
+// ✅ Delete medicine image from Cloudinary
+const deleteMedicineImage = async (imageUrl: string): Promise<void> => {
+  if (imageUrl) {
+    try {
+      await deleteFileFromCloudinary(imageUrl);
+    } catch (error) {
+      console.error("Failed to delete old image:", error);
+    }
+  }
+};
+
+const createMedicine = async (
+  sellerUserId: string, 
+  payload: ICreateMedicinePayload, 
+  imageFile?: Express.Multer.File
+) => {
   // Check if seller exists and is approved
   const seller = await prisma.seller.findUnique({
     where: { userId: sellerUserId }
@@ -22,7 +44,13 @@ const createMedicine = async (sellerUserId: string, payload: ICreateMedicinePayl
   }
   
   if (!seller.isApproved) {
-    throw new AppError(status.FORBIDDEN, "Your seller account is pending admin approval");
+    throw new AppError(status.FORBIDDEN, "Your seller account is pending admin approval. Please wait for approval before adding medicines.");
+  }
+  
+  // ✅ Upload image if provided
+  let imageUrl: string | undefined = payload.image;
+  if (imageFile) {
+    imageUrl = await uploadMedicineImage(imageFile);
   }
   
   const slug = generateSlug(payload.name);
@@ -56,7 +84,7 @@ const createMedicine = async (sellerUserId: string, payload: ICreateMedicinePayl
       dosageForm: payload.dosageForm,
       strength: payload.strength,
       categoryId: payload.categoryId,
-      image: payload.image,
+      image: imageUrl,
       sellerId: seller.id,
     },
     include: {
@@ -242,7 +270,12 @@ const getMedicineBySlug = async (slug: string) => {
   };
 };
 
-const updateMedicine = async (sellerUserId: string, medicineId: string, payload: IUpdateMedicinePayload) => {
+const updateMedicine = async (
+  sellerUserId: string, 
+  medicineId: string, 
+  payload: IUpdateMedicinePayload,
+  imageFile?: Express.Multer.File
+) => {
   // Get seller
   const seller = await prisma.seller.findUnique({
     where: { userId: sellerUserId }
@@ -276,6 +309,25 @@ const updateMedicine = async (sellerUserId: string, medicineId: string, payload:
     }
   }
   
+  // ✅ Handle image update
+  let imageUrl = medicine.image;
+  if (imageFile) {
+    // Delete old image
+    if (medicine.image) {
+      await deleteMedicineImage(medicine.image);
+    }
+    // Upload new image
+    imageUrl = await uploadMedicineImage(imageFile);
+  } else if (payload.image === null) {
+    // Remove image
+    if (medicine.image) {
+      await deleteMedicineImage(medicine.image);
+    }
+    imageUrl = null;
+  } else if (payload.image) {
+    imageUrl = payload.image;
+  }
+  
   if (payload.categoryId) {
     const category = await prisma.category.findUnique({
       where: { id: payload.categoryId }
@@ -299,7 +351,7 @@ const updateMedicine = async (sellerUserId: string, medicineId: string, payload:
       strength: payload.strength,
       categoryId: payload.categoryId,
       isActive: payload.isActive,
-      image: payload.image,
+      image: imageUrl,
     },
     include: {
       category: true,
@@ -328,6 +380,11 @@ const deleteMedicine = async (sellerUserId: string, medicineId: string) => {
   
   if (!medicine) {
     throw new AppError(status.NOT_FOUND, "Medicine not found or you don't have permission");
+  }
+  
+  // ✅ Delete image from Cloudinary
+  if (medicine.image) {
+    await deleteMedicineImage(medicine.image);
   }
   
   if (medicine.orderItems.length > 0) {
@@ -452,4 +509,6 @@ export const MedicineService = {
   getSellerMedicines,
   getManufacturers,
   getMedicineStats,
+  uploadMedicineImage,
+  deleteMedicineImage,
 };
