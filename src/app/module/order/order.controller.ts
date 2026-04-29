@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
-import statusCode from "http-status";  // 👈 Rename to statusCode
+import statusCode from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { OrderService } from "./order.service";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { getParamId } from "../../utils/param.utils";
+import { QueryBuilder } from "../../utils/queryBuilder";
+import { prisma } from "../../lib/prisma";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
@@ -15,24 +17,6 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: "Order placed successfully",
     data: result,
-  });
-});
-// Add this new function
-const getAllOrders = catchAsync(async (req: Request, res: Response) => {
-  const { status, page, limit } = req.query;
-  
-  const result = await OrderService.getAllOrders({
-    status: status as string,
-    page: page ? Number(page) : 1,
-    limit: limit ? Number(limit) : 10,
-  });
-  
-  sendResponse(res, {
-    httpCode: statusCode.OK,
-    success: true,
-    message: "All orders fetched successfully",
-    data: result.orders,
-    meta: result.meta,
   });
 });
 
@@ -125,13 +109,55 @@ const getOrderStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllOrders = catchAsync(async (req: Request, res: Response) => {
+  const queryBuilder = new QueryBuilder(
+    prisma.order,
+    req.query,
+    {
+      searchableFields: ["orderNumber", "customerName", "customerEmail"],
+      filterableFields: ["status", "customerId"]
+    }
+  );
+
+  const result = await queryBuilder
+    .search()
+    .filter()
+    .sort()
+    .paginate()
+    .include({
+      customer: {
+        include: {
+          user: {
+            select: { name: true, email: true }
+          }
+        }
+      },
+      items: {
+        include: {
+          medicine: {
+            select: { name: true, price: true, image: true }
+          }
+        }
+      }
+    })
+    .execute();
+
+  sendResponse(res, {
+    httpCode: statusCode.OK,
+    success: true,
+    message: "All orders fetched successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
 export const OrderController = {
   createOrder,
-  getAllOrders,
   getMyOrders,
   getOrderDetails,
   cancelOrder,
   getSellerOrders,
   updateOrderStatus,
   getOrderStats,
+  getAllOrders,
 };

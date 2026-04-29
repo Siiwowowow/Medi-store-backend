@@ -1,15 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
-import status from "http-status";
+import statusCode from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
 import { sendResponse } from "../../shared/sendResponse";
 import { CategoryService } from "./category.service";
 import { getParamId } from "../../utils/param.utils";
+import { QueryBuilder } from "../../utils/queryBuilder";
+import { prisma } from "../../lib/prisma";
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
   const result = await CategoryService.createCategory(req.body);
   
   sendResponse(res, {
-    httpCode: status.CREATED,
+    httpCode: statusCode.CREATED,
     success: true,
     message: "Category created successfully",
     data: result,
@@ -18,22 +21,49 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
   const includeInactive = req.query.includeInactive === 'true';
-  const result = await CategoryService.getAllCategories(includeInactive);
   
+  const queryBuilder = new QueryBuilder(
+    prisma.category,
+    req.query,
+    {
+      searchableFields: ["name", "description"],
+      filterableFields: ["isActive"]
+    }
+  );
+
+  const result = await queryBuilder
+    .search()
+    .filter()
+    .sort()
+    .paginate()
+    .include({
+      _count: {
+        select: { medicines: true }
+      }
+    })
+    .execute();
+
+  // Filter by isActive if requested
+  let categories = result.data;
+  if (!includeInactive) {
+    categories = categories.filter((cat: any) => cat.isActive === true);
+  }
+
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Categories fetched successfully",
-    data: result,
+    data: categories,
+    meta: result.meta,
   });
 });
 
 const getCategoryById = catchAsync(async (req: Request, res: Response) => {
-    const id = getParamId(req.params.id);
+  const id = getParamId(req.params.id);
   const result = await CategoryService.getCategoryById(id);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Category fetched successfully",
     data: result,
@@ -41,11 +71,11 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getCategoryBySlug = catchAsync(async (req: Request, res: Response) => {
-  const slug = getParamId(req.params.slug);  // better variable name
+  const slug = getParamId(req.params.slug);
   const result = await CategoryService.getCategoryBySlug(slug);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Category fetched successfully",
     data: result,
@@ -57,7 +87,7 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const result = await CategoryService.updateCategory(id, req.body);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Category updated successfully",
     data: result,
@@ -65,11 +95,11 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
 });
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
-    const id = getParamId(req.params.id);
+  const id = getParamId(req.params.id);
   const result = await CategoryService.deleteCategory(id);
   
   sendResponse(res, {
-    httpCode: status.OK,
+    httpCode: statusCode.OK,
     success: true,
     message: "Category deleted successfully",
     data: result,

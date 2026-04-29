@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Response } from "express";
 
+// ✅ Add stats interface for reviews
+interface IReviewStats {
+  averageRating: number;
+  totalReviews: number;
+}
+
+// ✅ Add stats to pagination meta (optional)
 interface IPaginationMeta {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
+  stats?: IReviewStats;  // 👈 Add stats as optional property
 }
 
 interface IResponseData<T> {
@@ -13,7 +21,7 @@ interface IResponseData<T> {
   success: boolean;
   message: string;
   data?: T;
-  meta?: IPaginationMeta;  // 👈 Add meta property
+  meta?: IPaginationMeta;
   error?: string;
 }
 
@@ -30,7 +38,7 @@ export const sendResponse = <T>(res: Response, response: IResponseData<T>) => {
   }
   
   if (meta !== undefined) {
-    responseBody.meta = meta;  // 👈 Add meta to response
+    responseBody.meta = meta;
   }
   
   if (error !== undefined) {

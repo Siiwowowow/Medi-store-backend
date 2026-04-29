@@ -6,29 +6,54 @@ import { handleProductPhotoUpload } from "../../middleware/fileUpload.middleware
 
 const router = Router();
 
-// ==================== PUBLIC ROUTES ====================
+/**
+ * ==================== PUBLIC ROUTES ====================
+ */
 router.get("/", MedicineController.getAllMedicines);
-router.get("/manufacturers", MedicineController.getManufacturers);
-router.get("/slug/:slug", MedicineController.getMedicineBySlug);
-router.get("/:id", MedicineController.getMedicineById);
 
-// ==================== SELLER ROUTES ====================
-router.post(
-  "/", 
-  checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
-  handleProductPhotoUpload,  // ✅ Image upload middleware
+router.get("/manufacturers", MedicineController.getManufacturers);
+
+router.get("/slug/:slug", MedicineController.getMedicineBySlug);
+
+
+/**
+ * ==================== SELLER ROUTES ====================
+ * group করার জন্য sub-router use করলাম (clean & scalable)
+ */
+const sellerRouter = Router();
+
+// 🔒 Apply auth once (no repetition)
+sellerRouter.use(checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN));
+
+// CRUD
+sellerRouter.post(
+  "/",
+  handleProductPhotoUpload,
   MedicineController.createMedicine
 );
 
-router.patch(
-  "/:id", 
-  checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
-  handleProductPhotoUpload,  // ✅ Image upload middleware
+sellerRouter.patch(
+  "/:id",
+  handleProductPhotoUpload,
   MedicineController.updateMedicine
 );
 
-router.delete("/:id", checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN), MedicineController.deleteMedicine);
-router.get("/seller/my-medicines", checkAuth(Role.SELLER), MedicineController.getSellerMedicines);
-router.get("/seller/stats", checkAuth(Role.SELLER), MedicineController.getMedicineStats);
+sellerRouter.delete(
+  "/:id",
+  MedicineController.deleteMedicine
+);
+
+// seller specific
+sellerRouter.get("/my-medicines", MedicineController.getSellerMedicines);
+sellerRouter.get("/stats", MedicineController.getMedicineStats);
+
+// mount seller routes
+router.use("/seller", sellerRouter);
+
+
+/**
+ * ==================== DYNAMIC ROUTES (ALWAYS LAST) ====================
+ */
+router.get("/:id", MedicineController.getMedicineById);
 
 export const MedicineRoutes = router;

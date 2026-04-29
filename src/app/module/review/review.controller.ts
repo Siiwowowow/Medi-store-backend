@@ -5,6 +5,8 @@ import { sendResponse } from "../../shared/sendResponse";
 import { ReviewService } from "./review.service";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { getParamId } from "../../utils/param.utils";
+import { QueryBuilder } from "../../utils/queryBuilder";
+import { prisma } from "../../lib/prisma";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
@@ -25,8 +27,8 @@ const getMedicineReviews = catchAsync(async (req: Request, res: Response) => {
   
   const result = await ReviewService.getMedicineReviews(medicineId, page, limit);
   
-  // 👈 Send response directly without sendResponse (to include stats)
-  res.status(statusCode.OK).json({
+  sendResponse(res, {
+    httpCode: statusCode.OK,
     success: true,
     message: "Reviews fetched successfully",
     data: result.reviews,
@@ -35,7 +37,7 @@ const getMedicineReviews = catchAsync(async (req: Request, res: Response) => {
       limit: result.meta.limit,
       total: result.meta.total,
       totalPages: result.meta.totalPages,
-      stats: result.stats,  // 👈 stats here
+      stats: result.stats,
     },
   });
 });
@@ -78,10 +80,60 @@ const deleteReviewAsAdmin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const queryBuilder = new QueryBuilder(
+    prisma.review,
+    req.query,
+    {
+      searchableFields: ["comment"],
+      filterableFields: ["rating", "medicineId", "customerId"]
+    }
+  );
+
+  const result = await queryBuilder
+    .search()
+    .filter()
+    .sort()
+    .paginate()
+    .include({
+      customer: {
+        include: {
+          user: {
+            select: { id: true, name: true, image: true }
+          }
+        }
+      },
+      medicine: {
+        select: { id: true, name: true, slug: true }
+      }
+    })
+    .execute();
+
+  const ratingAgg = await prisma.review.aggregate({
+    _avg: { rating: true },
+    _count: true,
+  });
+
+  sendResponse(res, {
+    httpCode: statusCode.OK,
+    success: true,
+    message: "Reviews fetched successfully",
+    data: result.data,
+    meta: {
+      ...result.meta,
+      stats: {
+        averageRating: ratingAgg._avg.rating || 0,
+        totalReviews: ratingAgg._count,
+      },
+    },
+  });
+});
+
 export const ReviewController = {
   createReview,
   getMedicineReviews,
   updateReview,
   deleteReview,
   deleteReviewAsAdmin,
+  getAllReviews,
 };

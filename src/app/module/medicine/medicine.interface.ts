@@ -8,20 +8,22 @@ export interface ICreateMedicinePayload {
   dosageForm?: string;
   strength?: string;
   categoryId?: string;
-  image?: string;  // ✅ Image URL from Cloudinary
+
+  // Cloudinary image URL
+  image?: string;
 }
 
-export interface IUpdateMedicinePayload extends Partial<ICreateMedicinePayload> {
+export interface IUpdateMedicinePayload
+  extends Partial<ICreateMedicinePayload> {
   isActive?: boolean;
 }
-
 export interface IMedicineFilters {
   search?: string;
   categoryId?: string;
-  minPrice?: number;
-  maxPrice?: number;
   manufacturer?: string;
   isActive?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
   page?: number;
   limit?: number;
 }
