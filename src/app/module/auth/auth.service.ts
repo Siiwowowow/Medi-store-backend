@@ -59,17 +59,14 @@ const registerUSer = async (
     shippingAddress,
   } = payload;
 
-  // ✅ FIRST CHECK: Does user exist with this email?
   const existingUser = await prisma.user.findUnique({
     where: { email }
   });
 
-  // ✅ Case 1: User exists and is VERIFIED - BLOCK registration
   if (existingUser && existingUser.emailVerified) {
     throw new AppError(status.CONFLICT, "Email already registered and verified. Please login.");
   }
 
-  // ✅ Case 2: User exists but NOT verified - Resend OTP only
   if (existingUser && !existingUser.emailVerified) {
     await auth.api.sendVerificationEmail({
       body: { email }
@@ -85,7 +82,6 @@ const registerUSer = async (
     };
   }
 
-  // ✅ Case 3: New user - Register with Better Auth
   let data: any;
 
   try {
@@ -102,7 +98,6 @@ const registerUSer = async (
 
   const userRole = role === "SELLER" ? Role.SELLER : Role.CUSTOMER;
 
-  // ✅ USE UPSERT - NOT CREATE (to avoid duplicate ID error)
   const user = await prisma.user.upsert({
     where: { email: data.user.email },
     update: {
@@ -121,7 +116,6 @@ const registerUSer = async (
     },
   });
 
-  // ✅ Create role-specific profile (check if exists)
   if (role === "SELLER") {
     if (!shopName) {
       throw new AppError(status.BAD_REQUEST, "Shop name is required for seller");
@@ -158,7 +152,6 @@ const registerUSer = async (
     }
   }
 
-  // Generate tokens
   const accessToken = tokenUtils.getAccessToken({
     userId: user.id,
     role: user.role,
@@ -243,7 +236,8 @@ const loginUser = async (payload: ILoginUserPayload) => {
   };
 };
 
-// Get Current User
+// 👇👇👇 THIS IS THE ONLY FUNCTION THAT NEEDS TO CHANGE 👇👇👇
+// Get Current User - UPDATED with Seller Support
 const getMe = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -264,8 +258,31 @@ const getMe = async (userId: string) => {
     throw new AppError(status.NOT_FOUND, "User not found");
   }
 
+  // 👇 ADD THIS BLOCK - Fetch seller data if user is SELLER
+  if (user.role === "SELLER") {
+    const seller = await prisma.seller.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        shopName: true,
+        shopAddress: true,
+        phoneNumber: true,
+        isApproved: true,
+      }
+    });
+
+    return {
+      ...user,
+      isSellerApproved: seller?.isApproved || false,
+      sellerStatus: seller?.isApproved ? "APPROVED" : "PENDING",
+      shopName: seller?.shopName,
+      sellerId: seller?.id,
+    };
+  }
+
   return user;
 };
+// 👆👆👆 END OF CHANGED FUNCTION 👆👆👆
 
 // Refresh Token
 const getNewToken = async (refreshToken: string, sessionToken: string) => {

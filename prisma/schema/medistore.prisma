@@ -29,6 +29,9 @@ model Medicine {
   image       String?
   isActive    Boolean   @default(true)
   
+  // 👇 NEW: Add orderCount field
+  orderCount  Int       @default(0)  // Total number of times this medicine has been ordered
+  
   categoryId  String?
   sellerId    String
   createdAt   DateTime  @default(now())
@@ -38,11 +41,12 @@ model Medicine {
   seller      Seller    @relation(fields: [sellerId], references: [id])
   orderItems  OrderItem[]
   reviews     Review[]
-  cartItems   CartItem[]  // 👈 এই লাইন যোগ করুন
+  cartItems   CartItem[]
   wishlists   Wishlist[]
 
   @@index([sellerId])
   @@index([categoryId])
+  @@index([orderCount])  // 👈 NEW: Add index for faster sorting
   @@map("medicines")
 }
 

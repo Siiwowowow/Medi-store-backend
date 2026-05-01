@@ -5,22 +5,14 @@ import { MedicineController } from "./medicine.controller";
 import { handleProductPhotoUpload } from "../../middleware/fileUpload.middleware";
 
 const router = Router();
+const sellerRouter = Router();
 
-/**
- * ==================== PUBLIC ROUTES ====================
- */
 router.get("/", MedicineController.getAllMedicines);
 
 router.get("/manufacturers", MedicineController.getManufacturers);
 
 router.get("/slug/:slug", MedicineController.getMedicineBySlug);
 
-
-/**
- * ==================== SELLER ROUTES ====================
- * group করার জন্য sub-router use করলাম (clean & scalable)
- */
-const sellerRouter = Router();
 
 // 🔒 Apply auth once (no repetition)
 sellerRouter.use(checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN));

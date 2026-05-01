@@ -7,7 +7,8 @@ import { multerUpload } from "../config/multer.config";
 export const handleProductPhotoUpload = (req: Request, res: Response, next: NextFunction) => {
   const upload = multerUpload.fields([
     { name: "productPhoto", maxCount: 1 },
-    { name: "file", maxCount: 1 }
+    { name: "file", maxCount: 1 },
+    { name: "image", maxCount: 1 }
   ]);
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

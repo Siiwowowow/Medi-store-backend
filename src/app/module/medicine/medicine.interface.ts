@@ -8,9 +8,26 @@ export interface ICreateMedicinePayload {
   dosageForm?: string;
   strength?: string;
   categoryId?: string;
-
-  // Cloudinary image URL
   image?: string;
+}
+
+export interface IUpdateMedicinePayload extends Partial<ICreateMedicinePayload> {
+  isActive?: boolean;
+}
+
+export interface IMedicineFilters {
+  search?: string;
+  categoryId?: string;
+  manufacturer?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minStock?: number;
+  stock?: number;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  isActive?: boolean;
 }
 
 export interface IUpdateMedicinePayload
@@ -21,9 +38,12 @@ export interface IMedicineFilters {
   search?: string;
   categoryId?: string;
   manufacturer?: string;
-  isActive?: boolean;
   minPrice?: number;
   maxPrice?: number;
+  minStock?: number;
+  stock?: number;
   page?: number;
   limit?: number;
+  sortBy?: string;      // 👈 Add this
+  sortOrder?: 'asc' | 'desc';  // 👈 Add this
 }

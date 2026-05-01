@@ -1,3 +1,4 @@
+//src>app>medicine>medicine.controller.ts
 import { Request, Response } from "express";
 import statusCode from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
@@ -11,7 +12,7 @@ const createMedicine = catchAsync(async (req: Request, res: Response) => {
   
   // ✅ Get uploaded file
   const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
-  const imageFile = files?.productPhoto?.[0] || files?.file?.[0];
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0] || files?.image?.[0];
   
   // ✅ Convert string to number for price and stock
   const payload = {
@@ -45,21 +46,29 @@ const getAllMedicines = catchAsync(async (req: Request, res: Response) => {
   const {
     search,
     categoryId,
+    manufacturer,
     minPrice,
     maxPrice,
-    manufacturer,
+    minStock,
+    stock,
     page,
     limit,
+    sortBy = "createdAt",      // ✅ Default to newest
+    sortOrder = "desc",   // ✅ Default to descending
   } = req.query;
   
   const result = await MedicineService.getAllMedicines({
     search: search as string,
     categoryId: categoryId as string,
+    manufacturer: manufacturer as string,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    manufacturer: manufacturer as string,
+    minStock: minStock ? Number(minStock) : undefined,
+    stock: stock ? Number(stock) : undefined,
     page: page ? Number(page) : 1,
     limit: limit ? Number(limit) : 12,
+    sortBy: sortBy as string,
+    sortOrder: sortOrder as 'asc' | 'desc',
   });
   
   sendResponse(res, {
@@ -101,9 +110,17 @@ const updateMedicine = catchAsync(async (req: Request, res: Response) => {
   
   // ✅ Get uploaded file
   const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
-  const imageFile = files?.productPhoto?.[0] || files?.file?.[0];
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0] || files?.image?.[0];
   
-  const result = await MedicineService.updateMedicine(user.userId, id, req.body, imageFile);
+  // ✅ Convert FormData string values to proper types
+  const payload = {
+    ...req.body,
+    price: req.body.price ? Number(req.body.price) : undefined,
+    stock: req.body.stock ? parseInt(req.body.stock, 10) : undefined,
+    isActive: req.body.isActive === 'true' ? true : req.body.isActive === 'false' ? false : undefined,
+  };
+  
+  const result = await MedicineService.updateMedicine(user.userId, id, payload, imageFile);
   
   sendResponse(res, {
     httpCode: statusCode.OK,

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+//src>app>module>order>order.service.ts
 import status from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
@@ -63,6 +64,12 @@ const createOrder = async (customerUserId: string, payload: ICreateOrderPayload)
     await prisma.medicine.update({
       where: { id: medicine.id },
       data: { stock: { decrement: item.quantity } }
+    });
+    
+    // 👇 NEW: Update orderCount
+    await prisma.medicine.update({
+      where: { id: medicine.id },
+      data: { orderCount: { increment: item.quantity } }
     });
   }
   
@@ -287,11 +294,15 @@ const cancelOrder = async (orderId: string, customerUserId: string) => {
     throw new AppError(status.BAD_REQUEST, `Cannot cancel order with status: ${order.status}`);
   }
   
-  // Restore stock
+  // Restore stock AND decrement orderCount
   for (const item of order.items) {
     await prisma.medicine.update({
       where: { id: item.medicineId },
-      data: { stock: { increment: item.quantity } }
+      data: { 
+        stock: { increment: item.quantity },
+        // 👇 NEW: Decrement orderCount when order is cancelled
+        orderCount: { decrement: item.quantity }
+      }
     });
   }
   
@@ -410,12 +421,16 @@ const updateOrderStatus = async (orderId: string, sellerUserId: string, payload:
     throw new AppError(status.FORBIDDEN, "You don't have permission to update this order");
   }
   
-  // If order is being cancelled, restore stock
+  // If order is being cancelled, restore stock AND decrement orderCount
   if (payload.status === 'CANCELLED' && order.status !== 'CANCELLED') {
     for (const item of order.items) {
       await prisma.medicine.update({
         where: { id: item.medicineId },
-        data: { stock: { increment: item.quantity } }
+        data: { 
+          stock: { increment: item.quantity },
+          // 👇 NEW: Decrement orderCount
+          orderCount: { decrement: item.quantity }
+        }
       });
     }
   }

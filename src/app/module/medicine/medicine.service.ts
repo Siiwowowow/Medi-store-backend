@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+//src>app>medicine>medicine.service.ts
 import status from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
@@ -102,6 +103,7 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     isActive: true,
   };
   
+  // Search
   if (filters.search) {
     where.OR = [
       { name: { contains: filters.search, mode: 'insensitive' } },
@@ -110,21 +112,41 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     ];
   }
   
+  // Category
   if (filters.categoryId) {
     where.categoryId = filters.categoryId;
   }
   
+  // Price range
   if (filters.minPrice !== undefined) {
     where.price = { gte: filters.minPrice };
   }
-  
   if (filters.maxPrice !== undefined) {
     where.price = { ...where.price, lte: filters.maxPrice };
   }
   
+  // Manufacturer
   if (filters.manufacturer) {
     where.manufacturer = filters.manufacturer;
   }
+  
+  // Stock
+  if (filters.minStock !== undefined) {
+    where.stock = { gte: filters.minStock };
+  }
+  if (filters.stock !== undefined && filters.stock === 0) {
+    where.stock = 0;
+  }
+  
+  // ✅ Build orderBy dynamically - REMOVED orderCount (doesn't exist in schema)
+  let orderBy: any = { createdAt: 'desc' }; // default
+  
+  if (filters.sortBy === 'price') {
+    orderBy = { price: filters.sortOrder || 'asc' };
+  } else if (filters.sortBy === 'createdAt') {
+    orderBy = { createdAt: filters.sortOrder || 'desc' };
+  }
+  // avgRating and orderCount are virtual fields - will sort in memory after calculation
   
   const [medicines, total] = await Promise.all([
     prisma.medicine.findMany({
@@ -132,18 +154,22 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
       include: {
         category: true,
         _count: {
-          select: { reviews: true }
+          select: { 
+            reviews: true,
+            orderItems: true  // ✅ Added to get order count
+          }
         }
       },
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
     }),
     prisma.medicine.count({ where }),
   ]);
   
-  // Calculate average rating for each medicine
-  const medicinesWithRating = await Promise.all(
+  // Calculate ratings and prepare data with virtual fields
+  // eslint-disable-next-line prefer-const
+  let medicinesWithStats = await Promise.all(
     medicines.map(async (medicine) => {
       const reviews = await prisma.review.aggregate({
         where: { medicineId: medicine.id },
@@ -156,12 +182,29 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
         price: medicine.price.toNumber(),
         avgRating: reviews._avg.rating || 0,
         reviewCount: reviews._count,
+        orderCount: medicine._count.orderItems, // ✅ Add order count from relation
       };
     })
   );
   
+  // ✅ If sorting by avgRating (virtual field), sort in memory
+  if (filters.sortBy === 'avgRating') {
+    medicinesWithStats.sort((a, b) => {
+      const order = filters.sortOrder === 'asc' ? 1 : -1;
+      return (a.avgRating - b.avgRating) * order;
+    });
+  }
+  
+  // ✅ If sorting by orderCount (virtual field), sort in memory
+  if (filters.sortBy === 'orderCount') {
+    medicinesWithStats.sort((a, b) => {
+      const order = filters.sortOrder === 'asc' ? 1 : -1;
+      return (a.orderCount - b.orderCount) * order;
+    });
+  }
+  
   return {
-    medicines: medicinesWithRating,
+    medicines: medicinesWithStats,
     meta: {
       page,
       limit,
@@ -203,6 +246,9 @@ const getMedicineById = async (id: string) => {
         },
         orderBy: { createdAt: 'desc' },
         take: 5,
+      },
+      _count: {
+        select: { orderItems: true }
       }
     }
   });
@@ -222,6 +268,7 @@ const getMedicineById = async (id: string) => {
     price: medicine.price.toNumber(),
     avgRating: ratingAgg._avg.rating || 0,
     reviewCount: ratingAgg._count,
+    orderCount: medicine._count.orderItems,
   };
 };
 
@@ -256,6 +303,9 @@ const getMedicineBySlug = async (slug: string) => {
           }
         },
         orderBy: { createdAt: 'desc' }
+      },
+      _count: {
+        select: { orderItems: true }
       }
     }
   });
@@ -267,6 +317,7 @@ const getMedicineBySlug = async (slug: string) => {
   return {
     ...medicine,
     price: medicine.price.toNumber(),
+    orderCount: medicine._count.orderItems,
   };
 };
 
@@ -447,6 +498,7 @@ const getSellerMedicines = async (sellerUserId: string, filters: IMedicineFilter
   const formattedMedicines = medicines.map(m => ({
     ...m,
     price: m.price.toNumber(),
+    orderCount: m._count.orderItems,
   }));
   
   return {
