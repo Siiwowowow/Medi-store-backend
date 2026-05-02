@@ -35,43 +35,31 @@ const createMedicine = async (
   payload: ICreateMedicinePayload, 
   imageFile?: Express.Multer.File
 ) => {
-  // Check if seller exists and is approved
-  const seller = await prisma.seller.findUnique({
-    where: { userId: sellerUserId }
-  });
+  // 1. Run independent checks AND image upload in parallel
+  const [seller, existingSlug, category, imageUrl] = await Promise.all([
+    prisma.seller.findUnique({ where: { userId: sellerUserId } }),
+    prisma.medicine.findUnique({ where: { slug: generateSlug(payload.name) } }),
+    payload.categoryId ? prisma.category.findUnique({ where: { id: payload.categoryId } }) : Promise.resolve(true),
+    imageFile ? uploadMedicineImage(imageFile) : Promise.resolve(payload.image)
+  ]);
   
   if (!seller) {
     throw new AppError(status.FORBIDDEN, "Only sellers can add medicines");
   }
   
   if (!seller.isApproved) {
-    throw new AppError(status.FORBIDDEN, "Your seller account is pending admin approval. Please wait for approval before adding medicines.");
+    throw new AppError(status.FORBIDDEN, "Your seller account is pending admin approval.");
   }
   
-  // ✅ Upload image if provided
-  let imageUrl: string | undefined = payload.image;
-  if (imageFile) {
-    imageUrl = await uploadMedicineImage(imageFile);
-  }
-  
-  const slug = generateSlug(payload.name);
-  
-  const existing = await prisma.medicine.findFirst({
-    where: { slug }
-  });
-  
-  if (existing) {
+  if (existingSlug) {
     throw new AppError(status.CONFLICT, "Medicine with similar name already exists");
   }
   
-  if (payload.categoryId) {
-    const category = await prisma.category.findUnique({
-      where: { id: payload.categoryId }
-    });
-    if (!category) {
-      throw new AppError(status.NOT_FOUND, "Category not found");
-    }
+  if (payload.categoryId && !category) {
+    throw new AppError(status.NOT_FOUND, "Category not found");
   }
+
+  const slug = generateSlug(payload.name);
   
   return prisma.medicine.create({
     data: {
@@ -103,7 +91,7 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     isActive: true,
   };
   
-  // Search
+  // ... (filtering logic remains the same)
   if (filters.search) {
     where.OR = [
       { name: { contains: filters.search, mode: 'insensitive' } },
@@ -111,42 +99,16 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
       { genericName: { contains: filters.search, mode: 'insensitive' } },
     ];
   }
+  if (filters.categoryId) where.categoryId = filters.categoryId;
+  if (filters.minPrice !== undefined) where.price = { gte: filters.minPrice };
+  if (filters.maxPrice !== undefined) where.price = { ...where.price, lte: filters.maxPrice };
+  if (filters.manufacturer) where.manufacturer = filters.manufacturer;
+  if (filters.minStock !== undefined) where.stock = { gte: filters.minStock };
+  if (filters.stock !== undefined && filters.stock === 0) where.stock = 0;
   
-  // Category
-  if (filters.categoryId) {
-    where.categoryId = filters.categoryId;
-  }
-  
-  // Price range
-  if (filters.minPrice !== undefined) {
-    where.price = { gte: filters.minPrice };
-  }
-  if (filters.maxPrice !== undefined) {
-    where.price = { ...where.price, lte: filters.maxPrice };
-  }
-  
-  // Manufacturer
-  if (filters.manufacturer) {
-    where.manufacturer = filters.manufacturer;
-  }
-  
-  // Stock
-  if (filters.minStock !== undefined) {
-    where.stock = { gte: filters.minStock };
-  }
-  if (filters.stock !== undefined && filters.stock === 0) {
-    where.stock = 0;
-  }
-  
-  // ✅ Build orderBy dynamically - REMOVED orderCount (doesn't exist in schema)
-  let orderBy: any = { createdAt: 'desc' }; // default
-  
-  if (filters.sortBy === 'price') {
-    orderBy = { price: filters.sortOrder || 'asc' };
-  } else if (filters.sortBy === 'createdAt') {
-    orderBy = { createdAt: filters.sortOrder || 'desc' };
-  }
-  // avgRating and orderCount are virtual fields - will sort in memory after calculation
+  let orderBy: any = { createdAt: 'desc' };
+  if (filters.sortBy === 'price') orderBy = { price: filters.sortOrder || 'asc' };
+  else if (filters.sortBy === 'createdAt') orderBy = { createdAt: filters.sortOrder || 'desc' };
   
   const [medicines, total] = await Promise.all([
     prisma.medicine.findMany({
@@ -156,7 +118,12 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
         _count: {
           select: { 
             reviews: true,
-            orderItems: true  // ✅ Added to get order count
+            orderItems: true
+          }
+        },
+        reviews: {
+          select: {
+            rating: true
           }
         }
       },
@@ -167,25 +134,19 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     prisma.medicine.count({ where }),
   ]);
   
-  // Calculate ratings and prepare data with virtual fields
-  // eslint-disable-next-line prefer-const
-  let medicinesWithStats = await Promise.all(
-    medicines.map(async (medicine) => {
-      const reviews = await prisma.review.aggregate({
-        where: { medicineId: medicine.id },
-        _avg: { rating: true },
-        _count: true,
-      });
-      
-      return {
-        ...medicine,
-        price: medicine.price.toNumber(),
-        avgRating: reviews._avg.rating || 0,
-        reviewCount: reviews._count,
-        orderCount: medicine._count.orderItems, // ✅ Add order count from relation
-      };
-    })
-  );
+  // Calculate stats in memory to avoid N+1 aggregate calls
+  const medicinesWithStats = medicines.map((medicine) => {
+    const ratings = medicine.reviews.map(r => r.rating);
+    const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+    
+    return {
+      ...medicine,
+      price: (medicine.price as any).toNumber(),
+      avgRating,
+      reviewCount: medicine._count.reviews,
+      orderCount: medicine._count.orderItems,
+    };
+  });
   
   // ✅ If sorting by avgRating (virtual field), sort in memory
   if (filters.sortBy === 'avgRating') {
@@ -327,66 +288,49 @@ const updateMedicine = async (
   payload: IUpdateMedicinePayload,
   imageFile?: Express.Multer.File
 ) => {
-  // Get seller
-  const seller = await prisma.seller.findUnique({
-    where: { userId: sellerUserId }
-  });
+  // 1. Run independent checks AND image upload in parallel
+  const [seller, medicine, existingWithSlug, category, newImageUrl] = await Promise.all([
+    prisma.seller.findUnique({ where: { userId: sellerUserId } }),
+    prisma.medicine.findUnique({ where: { id: medicineId } }),
+    payload.name ? prisma.medicine.findUnique({ where: { slug: generateSlug(payload.name) } }) : Promise.resolve(null),
+    payload.categoryId ? prisma.category.findUnique({ where: { id: payload.categoryId } }) : Promise.resolve(true),
+    imageFile ? uploadMedicineImage(imageFile) : Promise.resolve(undefined)
+  ]);
   
   if (!seller) {
     throw new AppError(status.FORBIDDEN, "Only sellers can update medicines");
   }
   
-  const medicine = await prisma.medicine.findFirst({
-    where: {
-      id: medicineId,
-      sellerId: seller.id,
-    }
-  });
-  
-  if (!medicine) {
+  if (!medicine || medicine.sellerId !== seller.id) {
     throw new AppError(status.NOT_FOUND, "Medicine not found or you don't have permission");
   }
   
-  let slug = medicine.slug;
-  if (payload.name && payload.name !== medicine.name) {
-    slug = generateSlug(payload.name);
-    
-    const existing = await prisma.medicine.findFirst({
-      where: { slug, id: { not: medicineId } }
-    });
-    
-    if (existing) {
-      throw new AppError(status.CONFLICT, "Medicine with this name already exists");
-    }
+  if (existingWithSlug && existingWithSlug.id !== medicineId) {
+    throw new AppError(status.CONFLICT, "Medicine with this name already exists");
   }
   
-  // ✅ Handle image update
-  let imageUrl = medicine.image;
-  if (imageFile) {
-    // Delete old image
+  if (payload.categoryId && !category) {
+    throw new AppError(status.NOT_FOUND, "Category not found");
+  }
+
+  // ✅ Handle image update logic
+  let finalImageUrl = medicine.image;
+  if (newImageUrl) {
+    // Delete old image in background (don't await to speed up response)
     if (medicine.image) {
-      await deleteMedicineImage(medicine.image);
+      deleteMedicineImage(medicine.image).catch(err => console.error("Background delete failed:", err));
     }
-    // Upload new image
-    imageUrl = await uploadMedicineImage(imageFile);
+    finalImageUrl = newImageUrl;
   } else if (payload.image === null) {
-    // Remove image
     if (medicine.image) {
-      await deleteMedicineImage(medicine.image);
+      deleteMedicineImage(medicine.image).catch(err => console.error("Background delete failed:", err));
     }
-    imageUrl = null;
+    finalImageUrl = null;
   } else if (payload.image) {
-    imageUrl = payload.image;
+    finalImageUrl = payload.image;
   }
-  
-  if (payload.categoryId) {
-    const category = await prisma.category.findUnique({
-      where: { id: payload.categoryId }
-    });
-    if (!category) {
-      throw new AppError(status.NOT_FOUND, "Category not found");
-    }
-  }
+
+  const slug = payload.name ? generateSlug(payload.name) : medicine.slug;
   
   return prisma.medicine.update({
     where: { id: medicineId },
@@ -402,7 +346,7 @@ const updateMedicine = async (
       strength: payload.strength,
       categoryId: payload.categoryId,
       isActive: payload.isActive,
-      image: imageUrl,
+      image: finalImageUrl,
     },
     include: {
       category: true,

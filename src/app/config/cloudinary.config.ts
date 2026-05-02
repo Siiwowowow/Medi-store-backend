@@ -46,6 +46,11 @@ export const uploadFileToCloudinary = async (
                 resource_type: "auto",
                 public_id: `ph-healthcare/${folder}/${uniqueName}`,
                 folder : `ph-healthcare/${folder}`,
+                // Auto quality + format — Cloudinary optimises on ingestion
+                transformation: [
+                    { quality: "auto:good", fetch_format: "auto" },
+                    { width: 800, height: 800, crop: "limit" }, // max 800px each side
+                ],
             },
             (error, result) => {
                 if(error){

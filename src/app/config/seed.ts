@@ -222,32 +222,6 @@ export const seedSampleCustomer = async () => {
   }
 };
 
-// Seed categories
-export const seedCategories = async () => {
-  try {
-    const categories = [
-      { name: "Pain Relief", slug: "pain-relief", description: "Medicines for pain relief" },
-      { name: "Cold & Flu", slug: "cold-flu", description: "Medicines for cold and flu" },
-      { name: "Vitamins", slug: "vitamins", description: "Vitamin and mineral supplements" },
-      { name: "Digestive Health", slug: "digestive-health", description: "Medicines for digestive issues" },
-      { name: "Skin Care", slug: "skin-care", description: "Skin care products and medicines" },
-      { name: "First Aid", slug: "first-aid", description: "First aid supplies" },
-      { name: "Allergy", slug: "allergy", description: "Allergy relief medicines" },
-    ];
-
-    for (const category of categories) {
-      await prisma.category.upsert({
-        where: { slug: category.slug },
-        update: {},
-        create: category,
-      });
-    }
-    console.log("✅ Categories seeded successfully");
-  } catch (error) {
-    console.error("❌ Error seeding categories:", error);
-  }
-};
-
 // Run all seeds
 export const seedAll = async () => {
   console.log("🌱 Starting database seeding...");
@@ -255,6 +229,5 @@ export const seedAll = async () => {
   await seedAdmin();
   await seedSampleSeller();
   await seedSampleCustomer();
-  await seedCategories();
   console.log("✅ Seeding completed!");
 };

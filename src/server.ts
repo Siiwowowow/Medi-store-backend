@@ -1,19 +1,18 @@
 import { Server } from "http";
 import app from "./app";
-import { seedSuperAdmin, seedCategories, seedAdmin, seedSampleSeller, seedSampleCustomer } from "./app/config/seed";  // 👈 seedCategories যোগ করুন
 import { envVars } from "./app/config/env";
 
 let server: Server;
 
 const bootstrap = async () => {
     try {
-        // সব seed চালান
-        await seedSuperAdmin();
-        await seedAdmin();
-        await seedSampleSeller();
-        await seedSampleCustomer();
-        await seedCategories();
-        
+        /* 
++        // 🚀 Seeding disabled for performance. Run manually if needed.
++        await seedSuperAdmin();
++        await seedAdmin();
++        await seedSampleSeller();
++        await seedSampleCustomer();
++        */
         server = app.listen(envVars.PORT, () => {
             console.log(`Server is running on http://localhost:${envVars.PORT}`);
         });
