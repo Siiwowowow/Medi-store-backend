@@ -16,5 +16,9 @@ router.patch("/:id/cancel", checkAuth(Role.CUSTOMER), OrderController.cancelOrde
 router.get("/seller/orders", checkAuth(Role.SELLER), OrderController.getSellerOrders);
 router.get("/seller/stats", checkAuth(Role.SELLER), OrderController.getOrderStats);
 router.patch("/seller/:id/status", checkAuth(Role.SELLER), OrderController.updateOrderStatus);
+
+// ==================== ADMIN ROUTES ====================
 router.get("/admin/all-orders", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), OrderController.getAllOrders);
+router.patch("/admin/:id/status", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), OrderController.adminUpdateOrderStatus);
+
 export const OrderRoutes = router;

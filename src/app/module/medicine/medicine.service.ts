@@ -4,6 +4,7 @@ import status from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 import { ICreateMedicinePayload, IMedicineFilters, IUpdateMedicinePayload } from "./medicine.interface";
+import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config";
 
 const generateSlug = (name: string): string => {
@@ -283,26 +284,31 @@ const getMedicineBySlug = async (slug: string) => {
 };
 
 const updateMedicine = async (
-  sellerUserId: string, 
+  currentUser: IRequestUser, 
   medicineId: string, 
   payload: IUpdateMedicinePayload,
   imageFile?: Express.Multer.File
 ) => {
   // 1. Run independent checks AND image upload in parallel
-  const [seller, medicine, existingWithSlug, category, newImageUrl] = await Promise.all([
-    prisma.seller.findUnique({ where: { userId: sellerUserId } }),
+  const [medicine, existingWithSlug, category, newImageUrl] = await Promise.all([
     prisma.medicine.findUnique({ where: { id: medicineId } }),
     payload.name ? prisma.medicine.findUnique({ where: { slug: generateSlug(payload.name) } }) : Promise.resolve(null),
     payload.categoryId ? prisma.category.findUnique({ where: { id: payload.categoryId } }) : Promise.resolve(true),
     imageFile ? uploadMedicineImage(imageFile) : Promise.resolve(undefined)
   ]);
   
-  if (!seller) {
-    throw new AppError(status.FORBIDDEN, "Only sellers can update medicines");
+  if (!medicine) {
+    throw new AppError(status.NOT_FOUND, "Medicine not found");
   }
-  
-  if (!medicine || medicine.sellerId !== seller.id) {
-    throw new AppError(status.NOT_FOUND, "Medicine not found or you don't have permission");
+
+  // Check permissions
+  if (currentUser.role === 'SELLER') {
+    const seller = await prisma.seller.findUnique({ where: { userId: currentUser.userId } });
+    if (!seller || medicine.sellerId !== seller.id) {
+      throw new AppError(status.FORBIDDEN, "You don't have permission to update this medicine");
+    }
+  } else if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN') {
+    throw new AppError(status.FORBIDDEN, "You don't have permission to update this medicine");
   }
   
   if (existingWithSlug && existingWithSlug.id !== medicineId) {
@@ -354,27 +360,26 @@ const updateMedicine = async (
   });
 };
 
-const deleteMedicine = async (sellerUserId: string, medicineId: string) => {
-  const seller = await prisma.seller.findUnique({
-    where: { userId: sellerUserId }
-  });
-  
-  if (!seller) {
-    throw new AppError(status.FORBIDDEN, "Only sellers can delete medicines");
-  }
-  
-  const medicine = await prisma.medicine.findFirst({
-    where: {
-      id: medicineId,
-      sellerId: seller.id,
-    },
+const deleteMedicine = async (currentUser: IRequestUser, medicineId: string) => {
+  const medicine = await prisma.medicine.findUnique({
+    where: { id: medicineId },
     include: {
       orderItems: { take: 1 }
     }
   });
   
   if (!medicine) {
-    throw new AppError(status.NOT_FOUND, "Medicine not found or you don't have permission");
+    throw new AppError(status.NOT_FOUND, "Medicine not found");
+  }
+
+  // Check permissions
+  if (currentUser.role === 'SELLER') {
+    const seller = await prisma.seller.findUnique({ where: { userId: currentUser.userId } });
+    if (!seller || medicine.sellerId !== seller.id) {
+      throw new AppError(status.FORBIDDEN, "You don't have permission to delete this medicine");
+    }
+  } else if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN') {
+    throw new AppError(status.FORBIDDEN, "You don't have permission to delete this medicine");
   }
   
   // ✅ Delete image from Cloudinary

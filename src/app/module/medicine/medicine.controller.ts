@@ -120,7 +120,7 @@ const updateMedicine = catchAsync(async (req: Request, res: Response) => {
     isActive: req.body.isActive === 'true' ? true : req.body.isActive === 'false' ? false : undefined,
   };
   
-  const result = await MedicineService.updateMedicine(user.userId, id, payload, imageFile);
+  const result = await MedicineService.updateMedicine(user, id, payload, imageFile);
   
   sendResponse(res, {
     httpCode: statusCode.OK,
@@ -133,7 +133,7 @@ const updateMedicine = catchAsync(async (req: Request, res: Response) => {
 const deleteMedicine = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const id = getParamId(req.params.id);
-  const result = await MedicineService.deleteMedicine(user.userId, id);
+  const result = await MedicineService.deleteMedicine(user, id);
   
   sendResponse(res, {
     httpCode: statusCode.OK,

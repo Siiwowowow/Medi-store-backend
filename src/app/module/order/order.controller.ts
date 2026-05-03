@@ -42,7 +42,17 @@ const getMyOrders = catchAsync(async (req: Request, res: Response) => {
 const getOrderDetails = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const orderId = getParamId(req.params.id);
-  const result = await OrderService.getOrderById(orderId, user.userId);
+  
+  let customerUserId;
+  let sellerUserId;
+  
+  if (user.role === 'CUSTOMER') {
+    customerUserId = user.userId;
+  } else if (user.role === 'SELLER') {
+    sellerUserId = user.userId;
+  }
+  
+  const result = await OrderService.getOrderById(orderId, customerUserId, sellerUserId);
   
   sendResponse(res, {
     httpCode: statusCode.OK,
@@ -151,6 +161,18 @@ const getAllOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const adminUpdateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+  const orderId = getParamId(req.params.id);
+  const result = await OrderService.adminUpdateOrderStatus(orderId, req.body);
+  
+  sendResponse(res, {
+    httpCode: statusCode.OK,
+    success: true,
+    message: "Order status updated successfully",
+    data: result,
+  });
+});
+
 export const OrderController = {
   createOrder,
   getMyOrders,
@@ -158,6 +180,7 @@ export const OrderController = {
   cancelOrder,
   getSellerOrders,
   updateOrderStatus,
+  adminUpdateOrderStatus,
   getOrderStats,
   getAllOrders,
 };

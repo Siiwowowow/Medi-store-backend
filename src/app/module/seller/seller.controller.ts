@@ -20,10 +20,7 @@ const getSellerProfile = catchAsync(async (req: Request, res: Response) => {
 
 // 👇 NEW: Get All Sellers Together
 const getAllSellers = catchAsync(async (req: Request, res: Response) => {
-  const page = req.query.page ? Number(req.query.page) : 1;
-  const limit = req.query.limit ? Number(req.query.limit) : 10;
-  
-  const result = await SellerService.getAllSellers(page, limit);
+  const result = await SellerService.getAllSellers(req.query);
   
   sendResponse(res, {
     httpCode: statusCode.OK,

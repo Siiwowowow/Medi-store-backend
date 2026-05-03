@@ -1,5 +1,5 @@
+// src/app/module/dashboard/dashboard.controller.ts
 
-//src/app/module/dashboard/dashboard.controller.ts
 import { Request, Response } from "express";
 import statusCode from "http-status";
 import { catchAsync } from "../../shared/catchAsync";
@@ -7,6 +7,8 @@ import { sendResponse } from "../../shared/sendResponse";
 import { DashboardService } from "./dashboard.service";
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { prisma } from "../../lib/prisma";
+
+// ==================== ADMIN DASHBOARD ====================
 
 const getAdminDashboard = catchAsync(async (req: Request, res: Response) => {
   const result = await DashboardService.getAdminDashboardStats();
@@ -33,7 +35,6 @@ const getSellerDashboard = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Get seller orders with pagination and filters
 const getSellerOrders = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const page = req.query.page ? Number(req.query.page) : 1;
@@ -60,7 +61,6 @@ const getSellerOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Get low stock products
 const getLowStockProducts = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const threshold = req.query.threshold ? Number(req.query.threshold) : 10;
@@ -75,7 +75,6 @@ const getLowStockProducts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Get product performance analytics
 const getProductPerformance = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   const productId = req.query.productId as string | undefined;
@@ -90,11 +89,9 @@ const getProductPerformance = catchAsync(async (req: Request, res: Response) => 
   });
 });
 
-// Get category performance
 const getCategoryPerformance = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;
   
-  // Get seller's medicines first
   const seller = await prisma.seller.findUnique({
     where: { userId: user.userId }
   });
@@ -135,7 +132,10 @@ const getCategoryPerformance = catchAsync(async (req: Request, res: Response) =>
 });
 
 export const DashboardController = {
+  // Admin
   getAdminDashboard,
+  
+  // Seller
   getSellerDashboard,
   getSellerOrders,
   getLowStockProducts,

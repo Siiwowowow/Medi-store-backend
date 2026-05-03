@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import status from "http-status";
 import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
@@ -26,11 +27,29 @@ const getSellerProfile = async (sellerUserId: string) => {
 };
 
 // 👇 NEW: Get All Sellers Together (Both Approved & Pending)
-const getAllSellers = async (page: number = 1, limit: number = 10) => {
+const getAllSellers = async (query: any = {}) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   
+  const whereCondition: any = {};
+  
+  if (query.searchTerm) {
+    whereCondition.OR = [
+      { shopName: { contains: query.searchTerm, mode: 'insensitive' } },
+      { shopAddress: { contains: query.searchTerm, mode: 'insensitive' } },
+      { user: { name: { contains: query.searchTerm, mode: 'insensitive' } } },
+      { user: { email: { contains: query.searchTerm, mode: 'insensitive' } } },
+    ];
+  }
+
+  if (query.status && query.status !== 'all') {
+    whereCondition.isApproved = query.status === 'APPROVED';
+  }
+
   const [sellers, total] = await Promise.all([
     prisma.seller.findMany({
+      where: whereCondition,
       include: {
         user: {
           select: {
@@ -52,7 +71,7 @@ const getAllSellers = async (page: number = 1, limit: number = 10) => {
       skip,
       take: limit,
     }),
-    prisma.seller.count(),
+    prisma.seller.count({ where: whereCondition }),
   ]);
   
   // Format sellers with status

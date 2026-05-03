@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+//src>app>module>admin>admin service
 import statusCode from "http-status";  // 👈 rename to statusCode
 import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { prisma } from "../../lib/prisma";
+import { QueryBuilder } from "../../utils/queryBuilder";
 import { IUpdateAdminPayload, IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
 import AppError from "../../errorHelpers/AppError";
 import { Role, UserStatus } from "../../../generated/prisma/enums";
@@ -213,11 +216,27 @@ const changeUserRole = async (payload: IChangeUserRolePayload, currentUser: IReq
     return updatedUser;
 }
 
+const getAllUsers = async (query: Record<string, unknown>) => {
+    const userQuery = new QueryBuilder(prisma.user as any, query as any, {
+        searchableFields: ['name', 'email'],
+        filterableFields: ['role', 'status'],
+    })
+    .search()
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+    
+    const result = await userQuery.execute();
+    return result;
+}
+
 export const AdminService = {
     getAllAdmins,
     getAdminById,
     updateAdmin,
     deleteAdmin,
     changeUserRole,
-    changeUserStatus
+    changeUserStatus,
+    getAllUsers
 }

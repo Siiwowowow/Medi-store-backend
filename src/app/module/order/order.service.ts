@@ -448,6 +448,41 @@ const updateOrderStatus = async (orderId: string, sellerUserId: string, payload:
   });
 };
 
+const adminUpdateOrderStatus = async (orderId: string, payload: IUpdateOrderStatusPayload) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: { include: { medicine: true } } }
+  });
+  
+  if (!order) {
+    throw new AppError(status.NOT_FOUND, "Order not found");
+  }
+
+  // If order is being cancelled, restore stock AND decrement orderCount
+  if (payload.status === 'CANCELLED' && order.status !== 'CANCELLED') {
+    for (const item of order.items) {
+      await prisma.medicine.update({
+        where: { id: item.medicineId },
+        data: { 
+          stock: { increment: item.quantity },
+          orderCount: { decrement: item.quantity }
+        }
+      });
+    }
+  }
+  
+  const updateData: any = { status: payload.status };
+  if (payload.status === 'DELIVERED') {
+    updateData.deliveredAt = new Date();
+  }
+  
+  return prisma.order.update({
+    where: { id: orderId },
+    data: updateData,
+    include: { items: true }
+  });
+};
+
 const getOrderStats = async (sellerUserId: string) => {
   const seller = await prisma.seller.findUnique({
     where: { userId: sellerUserId }
@@ -511,5 +546,6 @@ export const OrderService = {
   cancelOrder,
   getSellerOrders,
   updateOrderStatus,
+  adminUpdateOrderStatus,
   getOrderStats,
 };

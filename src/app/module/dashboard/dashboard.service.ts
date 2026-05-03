@@ -1,9 +1,191 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// dashboard.service.ts - Complete with Category Integration
-//src/app/module/dashboard/dashboard.service.ts
+// src/app/module/dashboard/dashboard.service.ts
+
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
 import status from "http-status";
+
+// ==================== ADMIN DASHBOARD STATS ====================
+
+const getAdminDashboardStats = async () => {
+  // Get all counts in parallel
+  const [
+    totalUsers,
+    totalSellers,
+    totalCustomers,
+    totalAdmins,
+    totalSuperAdmins,
+    pendingSellers,
+    totalMedicines,
+    activeMedicines,
+    totalOrders,
+    pendingOrders,
+    processingOrders,
+    shippedOrders,
+    deliveredOrders,
+    cancelledOrders,
+    totalRevenue,
+  ] = await Promise.all([
+    prisma.user.count({ where: { isDeleted: false } }),
+    prisma.user.count({ where: { role: "SELLER", isDeleted: false } }),
+    prisma.user.count({ where: { role: "CUSTOMER", isDeleted: false } }),
+    prisma.user.count({ where: { role: "ADMIN", isDeleted: false } }),
+    prisma.user.count({ where: { role: "SUPER_ADMIN", isDeleted: false } }),
+    prisma.seller.count({ where: { isApproved: false } }),
+    prisma.medicine.count(),
+    prisma.medicine.count({ where: { isActive: true } }),
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "PENDING" } }),
+    prisma.order.count({ where: { status: "PROCESSING" } }),
+    prisma.order.count({ where: { status: "SHIPPED" } }),
+    prisma.order.count({ where: { status: "DELIVERED" } }),
+    prisma.order.count({ where: { status: "CANCELLED" } }),
+    prisma.order.aggregate({
+      _sum: { totalAmount: true },
+      where: { status: { not: "CANCELLED" } },
+    }),
+  ]);
+
+  // Get recent orders (last 10)
+  const recentOrders = await prisma.order.findMany({
+    take: 10,
+    orderBy: { createdAt: "desc" },
+    include: {
+      customer: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+        },
+      },
+      items: {
+        take: 3,
+        select: {
+          id: true,
+          medicineName: true,
+          quantity: true,
+          totalPrice: true,
+        },
+      },
+    },
+  });
+
+  // Get pending sellers (for approval queue)
+  const pendingSellersList = await prisma.seller.findMany({
+    where: { isApproved: false },
+    take: 5,
+    orderBy: { createdAt: "asc" },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  // Calculate this month's revenue
+  const firstDayOfMonth = new Date();
+  firstDayOfMonth.setDate(1);
+  firstDayOfMonth.setHours(0, 0, 0, 0);
+
+  const thisMonthRevenue = await prisma.order.aggregate({
+    _sum: { totalAmount: true },
+    where: {
+      createdAt: { gte: firstDayOfMonth },
+      status: { not: "CANCELLED" },
+    },
+  });
+
+  // Calculate today's revenue
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayRevenue = await prisma.order.aggregate({
+    _sum: { totalAmount: true },
+    where: {
+      createdAt: { gte: today },
+      status: { not: "CANCELLED" },
+    },
+  });
+
+  // Calculate growth percentage
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  lastMonth.setDate(1);
+  lastMonth.setHours(0, 0, 0, 0);
+
+  const lastMonthRevenue = await prisma.order.aggregate({
+    _sum: { totalAmount: true },
+    where: {
+      createdAt: { gte: lastMonth, lt: firstDayOfMonth },
+      status: { not: "CANCELLED" },
+    },
+  });
+
+  const currentMonthTotal = thisMonthRevenue._sum.totalAmount?.toNumber() ?? 0;
+  const lastMonthTotal = lastMonthRevenue._sum.totalAmount?.toNumber() ?? 0;
+  const growth = lastMonthTotal === 0 ? 100 : Math.round(((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
+
+  return {
+    users: {
+      total: totalUsers,
+      sellers: totalSellers,
+      customers: totalCustomers,
+      admins: totalAdmins,
+      superAdmins: totalSuperAdmins,
+      pendingSellers: pendingSellers,
+    },
+    products: {
+      total: totalMedicines,
+      active: activeMedicines,
+      inactive: totalMedicines - activeMedicines,
+    },
+    orders: {
+      total: totalOrders,
+      pending: pendingOrders,
+      processing: processingOrders,
+      shipped: shippedOrders,
+      delivered: deliveredOrders,
+      cancelled: cancelledOrders,
+      completionRate: Math.round((deliveredOrders / totalOrders) * 100) || 0,
+    },
+    revenue: {
+      total: totalRevenue._sum.totalAmount || 0,
+      thisMonth: currentMonthTotal,
+      today: todayRevenue._sum.totalAmount || 0,
+      growth: growth > 0 ? `+${growth}%` : `${growth}%`,
+    },
+    recentOrders: recentOrders.map((order) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      totalAmount: order.totalAmount.toNumber(),
+      status: order.status,
+      createdAt: order.createdAt,
+      itemsCount: order.items.length,
+    })),
+    pendingSellers: pendingSellersList.map((seller) => ({
+      id: seller.id,
+      shopName: seller.shopName,
+      user: {
+        name: seller.user.name,
+        email: seller.user.email,
+        joinedAt: seller.user.createdAt,
+      },
+      createdAt: seller.createdAt,
+    })),
+    lastUpdated: new Date(),
+  };
+};
 
 // ==================== SELLER DASHBOARD ====================
 
@@ -217,7 +399,7 @@ const getCategoryDistribution = async (sellerId: string) => {
     name: cat.name,
     slug: cat.slug,
     productCount: cat._count.medicines,
-    percentage: 0, // Will calculate after total
+    percentage: 0,
   }));
 };
 
@@ -237,7 +419,6 @@ const getCategoryPerformance = async (medicineIds: string[]) => {
     }
   });
 
-  // Group by category
   const categoryMap = new Map();
 
   orderItems.forEach(item => {
@@ -324,7 +505,6 @@ const getRevenueStatistics = async (orderItems: any[]) => {
     .filter(item => item.order.createdAt >= monthAgo)
     .reduce((sum, item) => sum + item.totalPrice.toNumber(), 0);
 
-  // Calculate average order value
   const uniqueOrders = [...new Set(validItems.map(item => item.orderId))];
   const avgOrderValue = uniqueOrders.length > 0 ? total / uniqueOrders.length : 0;
 
@@ -418,8 +598,6 @@ const getTopSellingProducts = async (sellerId: string, limit: number = 5) => {
 
 // ==================== SELLER ORDERS (Paginated) ====================
 
-// ==================== SELLER ORDERS (Paginated) - FIXED ====================
-
 const getSellerOrders = async (
   sellerUserId: string, 
   page: number = 1, 
@@ -476,14 +654,12 @@ const getSellerOrders = async (
       include: {
         customer: {
           include: {
-            // ✅ FIXED: Removed phoneNumber from user select
             user: { 
               select: { 
                 id: true,
                 name: true, 
                 email: true, 
                 image: true
-                // phoneNumber: true  ← REMOVED - doesn't exist in User model
               } 
             }
           }
@@ -519,7 +695,6 @@ const getSellerOrders = async (
       name: order.customer.user.name,
       email: order.customer.user.email,
       image: order.customer.user.image,
-      // phoneNumber is in Customer model, not User
       phoneNumber: order.customer.phoneNumber,
     },
     items: order.items.map(item => ({
@@ -645,10 +820,8 @@ const getProductPerformance = async (sellerUserId: string, productId?: string) =
 // ==================== EXPORT SERVICE ====================
 
 export const DashboardService = {
-  // Existing admin function (keep as is)
-  getAdminDashboardStats: async () => {
-    // ... your existing admin dashboard code
-  },
+  // Admin dashboard
+  getAdminDashboardStats,
   
   // Seller dashboard functions
   getSellerDashboardStats,
