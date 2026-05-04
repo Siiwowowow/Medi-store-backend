@@ -15,5 +15,6 @@ export interface ICartItemResponse {
   quantity: number;
   image?: string | null;  // 👈 Allow null
   stock: number;
+  category: string;
   subtotal: number;
 }

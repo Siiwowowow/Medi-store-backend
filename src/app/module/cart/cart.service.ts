@@ -16,6 +16,11 @@ const getOrCreateCart = async (customerId: string) => {
               price: true,
               image: true,
               stock: true,
+              category: {
+                select: {
+                  name: true
+                }
+              }
             }
           }
         }
@@ -36,6 +41,11 @@ const getOrCreateCart = async (customerId: string) => {
                 price: true,
                 image: true,
                 stock: true,
+                category: {
+                  select: {
+                    name: true
+                  }
+                }
               }
             }
           }
@@ -48,12 +58,20 @@ const getOrCreateCart = async (customerId: string) => {
 };
 
 const getCart = async (customerUserId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
   });
   
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
   if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Only customers can access cart");
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
   }
   
   const cart = await getOrCreateCart(customer.id);
@@ -64,8 +82,9 @@ const getCart = async (customerUserId: string) => {
     name: item.medicine.name,
     price: item.medicine.price.toNumber(),
     quantity: item.quantity,
-    image: item.medicine.image,  // 👈 Now allows null
+    image: item.medicine.image,
     stock: item.medicine.stock,
+    category: item.medicine.category?.name || "Medicine",
     subtotal: item.medicine.price.toNumber() * item.quantity,
   }));
   
@@ -86,12 +105,20 @@ const addToCart = async (customerUserId: string, payload: IAddToCartPayload) => 
     throw new AppError(status.BAD_REQUEST, "Quantity must be at least 1");
   }
   
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
   });
   
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
   if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Only customers can add to cart");
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
   }
   
   const medicine = await prisma.medicine.findUnique({
@@ -143,43 +170,73 @@ const addToCart = async (customerUserId: string, payload: IAddToCartPayload) => 
 const updateCartItem = async (customerUserId: string, itemId: string, payload: IUpdateCartPayload) => {
   const { quantity } = payload;
   
+  // Validate quantity
   if (quantity < 0) {
     throw new AppError(status.BAD_REQUEST, "Quantity cannot be negative");
   }
   
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
-  });
-  
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+  // Validate itemId is provided
+  if (!itemId || itemId.trim() === '') {
+    throw new AppError(status.BAD_REQUEST, "Invalid cart item ID");
   }
   
-  const cartItem = await prisma.cartItem.findUnique({
-    where: { id: itemId },
+  // Get user and customer
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
+  });
+  
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
+  if (!customer) {
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
+  }
+  
+  // Get the user's cart
+  const cart = await prisma.cart.findUnique({
+    where: { customerId: customer.id }
+  });
+  
+  if (!cart) {
+    throw new AppError(status.NOT_FOUND, "Cart not found");
+  }
+  
+  // Find the cart item by ID, ensuring it belongs to the user's cart
+  const cartItem = await prisma.cartItem.findFirst({
+    where: {
+      id: itemId,
+      cartId: cart.id
+    },
     include: {
-      cart: true,
-      medicine: true
+      medicine: true,
+      cart: true
     }
   });
   
   if (!cartItem) {
+    console.error(`Cart item not found - itemId: ${itemId}, cartId: ${cart.id}, customerId: ${customer.id}`);
     throw new AppError(status.NOT_FOUND, "Cart item not found");
   }
   
-  if (cartItem.cart.customerId !== customer.id) {
-    throw new AppError(status.FORBIDDEN, "You don't have permission to modify this cart");
-  }
-  
+  // If quantity is 0, remove the item
   if (quantity === 0) {
-    await prisma.cartItem.delete({ where: { id: itemId } });
+    await prisma.cartItem.delete({ 
+      where: { id: cartItem.id } 
+    });
   } else {
+    // Validate stock
     if (cartItem.medicine.stock < quantity) {
       throw new AppError(status.BAD_REQUEST, `Only ${cartItem.medicine.stock} items available in stock`);
     }
     
+    // Update quantity
     await prisma.cartItem.update({
-      where: { id: itemId },
+      where: { id: cartItem.id },
       data: { quantity }
     });
   }
@@ -188,39 +245,71 @@ const updateCartItem = async (customerUserId: string, itemId: string, payload: I
 };
 
 const removeFromCart = async (customerUserId: string, itemId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
-  });
-  
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+  // Validate itemId is provided
+  if (!itemId || itemId.trim() === '') {
+    throw new AppError(status.BAD_REQUEST, "Invalid cart item ID");
   }
   
-  const cartItem = await prisma.cartItem.findUnique({
-    where: { id: itemId },
-    include: { cart: true }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
+  });
+  
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
+  if (!customer) {
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
+  }
+  
+  // Get the cart first
+  const cart = await prisma.cart.findUnique({
+    where: { customerId: customer.id }
+  });
+  
+  if (!cart) {
+    throw new AppError(status.NOT_FOUND, "Cart not found");
+  }
+  
+  // Find cart item by ID, ensuring it belongs to this cart
+  const cartItem = await prisma.cartItem.findFirst({
+    where: {
+      id: itemId,
+      cartId: cart.id
+    }
   });
   
   if (!cartItem) {
+    console.error(`Cart item not found - itemId: ${itemId}, cartId: ${cart.id}, customerId: ${customer.id}`);
     throw new AppError(status.NOT_FOUND, "Cart item not found");
   }
   
-  if (cartItem.cart.customerId !== customer.id) {
-    throw new AppError(status.FORBIDDEN, "You don't have permission to modify this cart");
-  }
-  
-  await prisma.cartItem.delete({ where: { id: itemId } });
+  await prisma.cartItem.delete({ 
+    where: { id: cartItem.id } 
+  });
   
   return getCart(customerUserId);
 };
 
 const clearCart = async (customerUserId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
   });
   
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
   if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
   }
   
   await prisma.cartItem.deleteMany({

@@ -164,19 +164,19 @@ const getAllOrders = async (filters: IOrderFilters = {}) => {
 };
 
 const getCustomerOrders = async (customerUserId: string, filters: IOrderFilters = {}) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId }
   });
   
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
   }
   
   const page = filters.page || 1;
   const limit = filters.limit || 10;
   const skip = (page - 1) * limit;
   
-  const where: any = { customerId: customer.id };
+  const where: any = { customer: { userId: user.id } };
   
   if (filters.status) {
     where.status = filters.status;
@@ -268,18 +268,18 @@ const getOrderById = async (orderId: string, customerUserId?: string, sellerUser
 };
 
 const cancelOrder = async (orderId: string, customerUserId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId }
   });
   
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
   }
   
   const order = await prisma.order.findFirst({
     where: {
       id: orderId,
-      customerId: customer.id,
+      customer: { userId: user.id },
     },
     include: {
       items: true

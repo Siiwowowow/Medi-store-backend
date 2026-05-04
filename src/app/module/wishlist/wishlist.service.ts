@@ -3,26 +3,22 @@ import AppError from "../../errorHelpers/AppError";
 import { prisma } from "../../lib/prisma";
 
 const getWishlist = async (customerUserId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId }
   });
   
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Only customers can use wishlist");
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
   }
   
   const wishlist = await prisma.wishlist.findMany({
-    where: { customerId: customer.id },
+    where: { customer: { userId: user.id } },
     include: {
       medicine: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          image: true,
-          stock: true,
-          manufacturer: true,
+        include: {
+          category: {
+            select: { name: true }
+          }
         }
       }
     },
@@ -32,21 +28,31 @@ const getWishlist = async (customerUserId: string) => {
   return wishlist.map(item => ({
     id: item.id,
     medicineId: item.medicineId,
-    medicine: {
-      ...item.medicine,
-      price: item.medicine.price.toNumber(),
-    },
+    name: item.medicine.name,
+    price: item.medicine.price.toNumber(),
+    image: item.medicine.image,
+    stock: item.medicine.stock,
+    category: item.medicine.category?.name || "Medicine",
+    description: item.medicine.description,
     createdAt: item.createdAt,
   }));
 };
 
 const addToWishlist = async (customerUserId: string, medicineId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
   });
   
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  let customer = user.customer;
   if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Only customers can use wishlist");
+    customer = await prisma.customer.create({
+      data: { userId: user.id }
+    });
   }
   
   const medicine = await prisma.medicine.findUnique({
@@ -70,72 +76,67 @@ const addToWishlist = async (customerUserId: string, medicineId: string) => {
     throw new AppError(status.CONFLICT, "Medicine already in wishlist");
   }
   
-  const wishlistItem = await prisma.wishlist.create({
+  await prisma.wishlist.create({
     data: {
       customerId: customer.id,
       medicineId,
-    },
-    include: {
-      medicine: {
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          image: true,
-        }
-      }
     }
   });
   
-  return {
-    id: wishlistItem.id,
-    medicineId: wishlistItem.medicineId,
-    medicine: {
-      ...wishlistItem.medicine,
-      price: wishlistItem.medicine.price.toNumber(),
-    },
-    createdAt: wishlistItem.createdAt,
-  };
+  return getWishlist(customerUserId);
 };
 
 const removeFromWishlist = async (customerUserId: string, wishlistId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId },
+    include: { customer: true }
   });
   
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
+  }
+  
+  const customer = user.customer;
   if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+    throw new AppError(status.NOT_FOUND, "Customer profile not found");
   }
   
   const wishlistItem = await prisma.wishlist.findFirst({
     where: {
-      id: wishlistId,
+      OR: [
+        { id: wishlistId },
+        { 
+          medicineId: wishlistId, 
+          customerId: customer.id 
+        }
+      ],
       customerId: customer.id,
     }
   });
   
   if (!wishlistItem) {
+    console.error(`Wishlist item not found. wishlistId: ${wishlistId}, customerId: ${customer.id}`);
     throw new AppError(status.NOT_FOUND, "Wishlist item not found");
   }
   
   await prisma.wishlist.delete({
-    where: { id: wishlistId }
+    where: { id: wishlistItem.id }
   });
   
-  return { message: "Item removed from wishlist" };
+  return getWishlist(customerUserId);
 };
 
 const clearWishlist = async (customerUserId: string) => {
-  const customer = await prisma.customer.findUnique({
-    where: { userId: customerUserId }
+  const user = await prisma.user.findUnique({
+    where: { id: customerUserId }
   });
   
-  if (!customer) {
-    throw new AppError(status.FORBIDDEN, "Customer not found");
+  if (!user) {
+    throw new AppError(status.FORBIDDEN, "User not found");
   }
   
   await prisma.wishlist.deleteMany({
-    where: { customerId: customer.id }
+    where: { customer: { userId: user.id } }
   });
   
   return { message: "Wishlist cleared successfully" };
