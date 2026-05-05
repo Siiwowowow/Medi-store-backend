@@ -1,18 +1,18 @@
 import { Server } from "http";
 import app from "./app";
 import { envVars } from "./app/config/env";
+import { seedAdmin, seedSampleCustomer, seedSampleSeller, seedSuperAdmin } from "./app/config/seed";
 
 let server: Server;
 
 const bootstrap = async () => {
     try {
-        /* 
-+        // 🚀 Seeding disabled for performance. Run manually if needed.
-+        await seedSuperAdmin();
-+        await seedAdmin();
-+        await seedSampleSeller();
-+        await seedSampleCustomer();
-+        */
+        // 🚀 Seeding disabled for performance. Run manually if needed.
+        await seedSuperAdmin();
+        await seedAdmin();
+        await seedSampleSeller();
+        await seedSampleCustomer();
+        
         server = app.listen(envVars.PORT, () => {
             console.log(`Server is running on http://localhost:${envVars.PORT}`);
         });

@@ -285,16 +285,7 @@ const getMe = async (userId: string) => {
 // 👆👆👆 END OF CHANGED FUNCTION 👆👆👆
 
 // Refresh Token
-const getNewToken = async (refreshToken: string, sessionToken: string) => {
-  const isSessionTokenExists = await prisma.session.findUnique({
-    where: { token: sessionToken },
-    include: { user: true },
-  });
-
-  if (!isSessionTokenExists) {
-    throw new AppError(status.UNAUTHORIZED, "Invalid session token");
-  }
-
+const getNewToken = async (refreshToken: string, sessionToken: string | undefined) => {
   const verifiedRefreshToken = jwtUtils.verifyToken(refreshToken, envVars.REFRESH_TOKEN_SECRET);
 
   if (!verifiedRefreshToken.success) {
@@ -302,6 +293,16 @@ const getNewToken = async (refreshToken: string, sessionToken: string) => {
   }
 
   const data = verifiedRefreshToken.data as JwtPayload;
+
+  if (sessionToken) {
+    const isSessionTokenExists = await prisma.session.findUnique({
+      where: { token: sessionToken },
+    });
+
+    if (!isSessionTokenExists) {
+      throw new AppError(status.UNAUTHORIZED, "Invalid session token");
+    }
+  }
 
   const newAccessToken = tokenUtils.getAccessToken({
     userId: data.userId,
@@ -325,14 +326,19 @@ const getNewToken = async (refreshToken: string, sessionToken: string) => {
     needPasswordChange: data.needPasswordChange,
   });
 
-  const { token } = await prisma.session.update({
-    where: { token: sessionToken },
-    data: {
-      token: sessionToken,
-      expiresAt: new Date(Date.now() + SESSION_DURATION_MS),
-      updatedAt: new Date(),
-    },
-  });
+  let updatedSessionToken = sessionToken;
+
+  if (sessionToken) {
+    const { token } = await prisma.session.update({
+      where: { token: sessionToken },
+      data: {
+        token: sessionToken,
+        expiresAt: new Date(Date.now() + SESSION_DURATION_MS),
+        updatedAt: new Date(),
+      },
+    });
+    updatedSessionToken = token;
+  }
 
   const decodedAccessToken: any = jwtUtils.verifyToken(newAccessToken, envVars.ACCESS_TOKEN_SECRET);
   const decodedRefreshToken: any = jwtUtils.verifyToken(newRefreshToken, envVars.REFRESH_TOKEN_SECRET);
@@ -358,7 +364,7 @@ const getNewToken = async (refreshToken: string, sessionToken: string) => {
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
-    sessionToken: token,
+    sessionToken: updatedSessionToken,
   };
 };
 

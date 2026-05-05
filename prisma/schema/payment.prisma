@@ -1,0 +1,30 @@
+// prisma/schema/payment.prisma
+model Payment {
+  id                    String        @id @default(uuid())
+  amount                Float
+  transactionId         String        @unique
+  stripePaymentIntentId String?       @unique
+  status                PaymentStatus @default(PENDING)
+  paymentMethod         PaymentMethod @default(STRIPE)
+  paymentGatewayData    Json?
+  
+  // ✅ Keep 'fields' and 'references' here
+  orderId               String        @unique
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  customerId            String
+  customer              Customer      @relation(fields: [customerId], references: [id])
+  
+  paidAt                DateTime?
+  receiptUrl            String?
+  failureReason         String?
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([customerId])
+  @@index([transactionId])
+  @@index([stripePaymentIntentId])
+  @@map("payments")
+}

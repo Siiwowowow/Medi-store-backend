@@ -94,7 +94,10 @@ const getNewToken = catchAsync(async (req: Request, res: Response) => {
 
   tokenUtils.setAccessTokenCookie(res, accessToken);
   tokenUtils.setRefreshTokenCookie(res, newRefreshToken);
-  tokenUtils.setBetterAuthSessionCookie(res, sessionToken);
+  
+  if (sessionToken) {
+    tokenUtils.setBetterAuthSessionCookie(res, sessionToken);
+  }
 
   sendResponse(res, {
     httpCode: status.OK,

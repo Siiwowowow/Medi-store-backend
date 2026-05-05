@@ -1,3 +1,5 @@
+// prisma/schema/enum.prisma
+
 enum Role {
   SUPER_ADMIN
   ADMIN
@@ -10,4 +12,24 @@ enum UserStatus {
   BLOCKED
   PENDING_VERIFICATION
   DELETED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  COD
 }

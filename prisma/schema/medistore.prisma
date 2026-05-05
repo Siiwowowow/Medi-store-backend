@@ -28,9 +28,7 @@ model Medicine {
   strength    String?
   image       String?
   isActive    Boolean   @default(true)
-  
-  // 👇 NEW: Add orderCount field
-  orderCount  Int       @default(0)  // Total number of times this medicine has been ordered
+  orderCount  Int       @default(0)
   
   categoryId  String?
   sellerId    String
@@ -46,16 +44,8 @@ model Medicine {
 
   @@index([sellerId])
   @@index([categoryId])
-  @@index([orderCount])  // 👈 NEW: Add index for faster sorting
+  @@index([orderCount])
   @@map("medicines")
-}
-
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
 }
 
 model Order {
@@ -76,7 +66,11 @@ model Order {
 
   customer        Customer    @relation(fields: [customerId], references: [id])
   items           OrderItem[]
-  reviews         Review[]    // 👈 এই লাইন যোগ করুন
+  reviews         Review[]
+  
+  // ✅ FIXED: Remove 'fields' argument - just use @relation() without parameters
+  payment         Payment?    @relation()
+  paymentId       String?     @unique
 
   @@index([customerId])
   @@index([status])
@@ -112,7 +106,7 @@ model Review {
 
   customer    Customer @relation(fields: [customerId], references: [id])
   medicine    Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
-  order       Order?   @relation(fields: [orderId], references: [id])  // 👈 এই লাইন ঠিক আছে
+  order       Order?   @relation(fields: [orderId], references: [id])
 
   @@unique([customerId, medicineId])
   @@index([medicineId])
@@ -138,11 +132,12 @@ model CartItem {
   quantity   Int      @default(1)
 
   cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  medicine   Medicine @relation(fields: [medicineId], references: [id])  // 👈 এই লাইন ঠিক আছে
+  medicine   Medicine @relation(fields: [medicineId], references: [id])
 
   @@unique([cartId, medicineId])
   @@map("cart_items")
 }
+
 model Wishlist {
   id         String   @id @default(uuid())
   customerId String

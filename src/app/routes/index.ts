@@ -11,6 +11,7 @@ import { SellerRoutes } from "../module/seller/seller.route";
 import { DashboardRoutes } from "../module/dashboard/dashboard.route";
 import { WishlistRoutes } from "../module/wishlist/wishlist.route";
 import { SearchRoutes } from "../module/search/search.route";
+import { PaymentRoutes } from "../module/payment/payment.route";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use("/seller", SellerRoutes);
 router.use("/dashboard", DashboardRoutes);
 router.use("/wishlist", WishlistRoutes);
 router.use("/search", SearchRoutes);
+router.use("/payments", PaymentRoutes);
 
 export const IndexRoutes = router;

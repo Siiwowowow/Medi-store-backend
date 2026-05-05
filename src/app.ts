@@ -16,11 +16,8 @@ app.set("query parser", (str : string) => qs.parse(str));
 
 app.set("view engine", "ejs");
 app.set("views",path.resolve(process.cwd(), `src/app/templates`) )
-app.post("/webhook", express.raw({ type: "application/json" }),async(req:Request,res:Response)=>{
-  console.log("webhook received",req.body)
-  res.status(200).json({received:true})
-
-})
+// Stripe Webhook needs raw body before express.json()
+app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }));
 
 // Enable CORS with credentials
 app.use(cors({
@@ -34,10 +31,16 @@ app.use("/api/auth", toNodeHandler(auth))
 // Enable URL-encoded form data parsing
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Middleware to parse JSON bodies (except for webhooks)
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/v1/payments/webhook") {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
+
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/", IndexRoutes);
 

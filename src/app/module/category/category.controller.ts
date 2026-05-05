@@ -9,7 +9,20 @@ import { QueryBuilder } from "../../utils/queryBuilder";
 import { prisma } from "../../lib/prisma";
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-  const result = await CategoryService.createCategory(req.body);
+  // ✅ Get uploaded file
+  const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0] || files?.image?.[0];
+
+  // ✅ Clean up payload (handle FormData string values)
+  const payload = { ...req.body };
+  if (typeof payload.name === 'string') {
+    payload.name = payload.name.replace(/^"|"$/g, '');
+  }
+  if (typeof payload.description === 'string') {
+    payload.description = payload.description.replace(/^"|"$/g, '');
+  }
+
+  const result = await CategoryService.createCategory(payload, imageFile);
   
   sendResponse(res, {
     httpCode: statusCode.CREATED,
@@ -84,7 +97,28 @@ const getCategoryBySlug = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const id = getParamId(req.params.id);
-  const result = await CategoryService.updateCategory(id, req.body);
+
+  // ✅ Get uploaded file
+  const files = req.files as { [fieldName: string]: Express.Multer.File[] } | undefined;
+  const imageFile = files?.productPhoto?.[0] || files?.file?.[0] || files?.image?.[0];
+
+  // ✅ Clean up payload (handle FormData string values)
+  const payload = { ...req.body };
+  if (typeof payload.name === 'string') {
+    payload.name = payload.name.replace(/^"|"$/g, '');
+  }
+  if (typeof payload.description === 'string') {
+    payload.description = payload.description.replace(/^"|"$/g, '');
+  }
+  if (payload.isActive !== undefined) {
+    payload.isActive = payload.isActive === 'true' ? true : payload.isActive === 'false' ? false : payload.isActive;
+  }
+  
+  if (req.body.removeImage === 'true') {
+    payload.image = null;
+  }
+
+  const result = await CategoryService.updateCategory(id, payload, imageFile);
   
   sendResponse(res, {
     httpCode: statusCode.OK,
