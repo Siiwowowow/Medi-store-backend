@@ -17,7 +17,7 @@ app.set("query parser", (str : string) => qs.parse(str));
 app.set("view engine", "ejs");
 app.set("views",path.resolve(process.cwd(), `src/app/templates`) )
 // Stripe Webhook needs raw body before express.json()
-app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }));
+app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
 
 // Enable CORS with credentials
 app.use(cors({
@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Middleware to parse JSON bodies (except for webhooks)
 app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/payments/webhook") {
+  if (req.originalUrl === "/api/v1/payment/webhook") {
     next();
   } else {
     express.json()(req, res, next);

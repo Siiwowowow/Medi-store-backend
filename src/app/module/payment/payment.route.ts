@@ -21,4 +21,10 @@ router.post(
   PaymentController.handleStripeWebhook
 );
 
+router.get(
+  "/verify",
+  checkAuth(Role.CUSTOMER),
+  PaymentController.verifyPayment
+);
+
 export const PaymentRoutes = router;

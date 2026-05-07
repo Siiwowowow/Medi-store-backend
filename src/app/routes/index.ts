@@ -27,6 +27,6 @@ router.use("/seller", SellerRoutes);
 router.use("/dashboard", DashboardRoutes);
 router.use("/wishlist", WishlistRoutes);
 router.use("/search", SearchRoutes);
-router.use("/payments", PaymentRoutes);
+router.use("/payment", PaymentRoutes);
 
 export const IndexRoutes = router;

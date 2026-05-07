@@ -143,6 +143,15 @@ const getAllOrders = async (filters: IOrderFilters = {}) => {
               }
             }
           }
+        },
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            transactionId: true,
+            amount: true,
+            paymentMethod: true,
+          }
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -195,6 +204,15 @@ const getCustomerOrders = async (customerUserId: string, filters: IOrderFilters 
             unitPrice: true,
             totalPrice: true,
           }
+        },
+        payment: {
+          select: {
+            id: true,
+            status: true,
+            transactionId: true,
+            amount: true,
+            paymentMethod: true,
+          }
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -230,7 +248,8 @@ const getOrderById = async (orderId: string, customerUserId?: string, sellerUser
             }
           }
         }
-      }
+      },
+      payment: true
     }
   });
   

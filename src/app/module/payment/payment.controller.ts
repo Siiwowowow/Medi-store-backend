@@ -8,15 +8,27 @@ import { sendResponse } from "../../shared/sendResponse";
 import { PaymentService } from "./payment.service";
 
 const initiatePayment = catchAsync(async (req: Request, res: Response) => {
-  const { orderId } = req.body;
-  const userId = (req as any).user.id;
+  const { orderId, paymentMethod } = req.body;
+  const userId = (req as any).user.userId;
 
-  const result = await PaymentService.initiatePayment(orderId, userId);
+  const result = await PaymentService.initiatePayment(orderId, userId, paymentMethod);
 
   sendResponse(res, {
     httpCode: status.OK,
     success: true,
     message: "Payment initiated successfully",
+    data: result,
+  });
+});
+
+const verifyPayment = catchAsync(async (req: Request, res: Response) => {
+  const { sessionId } = req.query;
+  const result = await PaymentService.verifyPayment(sessionId as string);
+
+  sendResponse(res, {
+    httpCode: status.OK,
+    success: true,
+    message: "Payment verified successfully",
     data: result,
   });
 });
@@ -49,4 +61,5 @@ const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
 export const PaymentController = {
   initiatePayment,
   handleStripeWebhook,
+  verifyPayment,
 };

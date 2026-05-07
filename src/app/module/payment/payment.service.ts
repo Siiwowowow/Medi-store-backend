@@ -7,7 +7,8 @@ import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { PaymentStatus, PaymentMethod } from "../../../generated/prisma/enums";
 
-const initiatePayment = async (orderId: string, userId: string) => {
+
+const initiatePayment = async (orderId: string, userId: string, paymentMethod: PaymentMethod = PaymentMethod.STRIPE) => {
   if (!orderId) {
     throw new AppError(status.BAD_REQUEST, "Order ID is required");
   }
@@ -47,6 +48,7 @@ const initiatePayment = async (orderId: string, userId: string) => {
       amount: order.totalAmount.toNumber(),
       transactionId,
       status: PaymentStatus.PENDING,
+      paymentMethod: paymentMethod,
     },
     create: {
       orderId,
@@ -54,38 +56,107 @@ const initiatePayment = async (orderId: string, userId: string) => {
       amount: order.totalAmount.toNumber(),
       transactionId,
       status: PaymentStatus.PENDING,
-      paymentMethod: PaymentMethod.STRIPE,
+      paymentMethod: paymentMethod,
     },
   });
 
-  // Create Stripe Checkout Session
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-    line_items: order.items.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.medicineName,
-          images: item.medicineImage ? [item.medicineImage] : [],
+  if (paymentMethod === PaymentMethod.STRIPE || !paymentMethod) {
+    // Stripe has a minimum amount requirement (approx $0.50 USD). 
+    // For BDT, 60-70 BDT is usually the safe minimum.
+    const totalPoisha = order.items.reduce((acc, item) => acc + Math.round(item.unitPrice.toNumber() * 100) * item.quantity, 0);
+    
+    if (totalPoisha < 6000) { // 60 BDT minimum
+      throw new AppError(status.BAD_REQUEST, "Stripe requires a minimum payment of ৳60. Please add more items or choose another payment method.");
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        line_items: order.items.map((item) => ({
+          price_data: {
+            currency: "bdt",
+            product_data: {
+              name: item.medicineName,
+              images: item.medicineImage ? [item.medicineImage] : [],
+            },
+            unit_amount: Math.round(item.unitPrice.toNumber() * 100), // Stripe expects poisha
+          },
+          quantity: item.quantity,
+        })),
+        success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&orderId=${orderId}`,
+        cancel_url: `${envVars.FRONTEND_URL}/payment/cancel?orderId=${orderId}`,
+        metadata: {
+          orderId: order.id,
+          paymentId: payment.id,
+          transactionId,
         },
-        unit_amount: Math.round(item.unitPrice.toNumber() * 100), // Stripe expects cents
-      },
-      quantity: item.quantity,
-    })),
-    success_url: `${envVars.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&orderId=${orderId}`,
-    cancel_url: `${envVars.FRONTEND_URL}/payment/cancel?orderId=${orderId}`,
-    metadata: {
-      orderId: order.id,
-      paymentId: payment.id,
-      transactionId,
-    },
-  });
+      });
 
-  return {
-    paymentUrl: session.url,
-    sessionId: session.id,
-  };
+      return {
+        paymentUrl: session.url,
+        sessionId: session.id,
+      };
+    } catch (stripeError: any) {
+      console.error("Stripe Error:", stripeError);
+      
+      // Handle specific Stripe errors
+      if (stripeError.type === 'StripeInvalidRequestError') {
+        throw new AppError(status.BAD_REQUEST, stripeError.message);
+      }
+      
+      throw new AppError(status.INTERNAL_SERVER_ERROR, "An error occurred while communicating with Stripe");
+    }
+  }
+
+  if (paymentMethod === PaymentMethod.COD) {
+    // For COD, we just return the success state immediately
+    // The order status remains PENDING until processed by admin
+    return {
+      paymentUrl: `${envVars.FRONTEND_URL}/payment/success?orderId=${orderId}&paymentMethod=COD`,
+      message: "Order placed successfully with Cash on Delivery",
+    };
+  }
+
+  throw new AppError(status.BAD_REQUEST, "Invalid payment method.");
+};
+
+const verifyPayment = async (sessionId: string) => {
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (session.payment_status === "paid") {
+    const orderId = session.metadata?.orderId;
+    const paymentId = session.metadata?.paymentId;
+
+    if (orderId && paymentId) {
+      await prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.findUnique({ where: { id: paymentId } });
+        
+        if (payment && payment.status !== PaymentStatus.COMPLETED) {
+          await tx.payment.update({
+            where: { id: paymentId },
+            data: {
+              stripePaymentIntentId: session.payment_intent as string,
+              status: PaymentStatus.COMPLETED,
+              paymentGatewayData: session as any,
+              paidAt: new Date(),
+            },
+          });
+
+          await tx.order.update({
+            where: { id: orderId },
+            data: {
+              status: "PROCESSING",
+              paymentId: paymentId,
+            },
+          });
+        }
+      });
+    }
+    return { status: "PAID", orderId };
+  }
+
+  return { status: "PENDING" };
 };
 
 const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
@@ -178,4 +249,5 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
 export const PaymentService = {
   initiatePayment,
   handlerStripeWebhookEvent,
+  verifyPayment,
 };
