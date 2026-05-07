@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { PaymentController } from "./payment.controller";
 import { checkAuth } from "../../middleware/checkAuth";
-import { Role } from "../../../generated/prisma/enums";
 import { validateRequest } from "../../middleware/validateRequest";
 import { PaymentValidation } from "./payment.validation";
+import { Role } from "../../types/enums";
 
 const router = Router();
 

@@ -1,9 +1,9 @@
 // dashboard.routes.ts - Complete
 //src/app/module/dashboard/dashboard.route.ts
 import { Router } from "express";
-import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { DashboardController } from "./dashboard.controller";
+import { Role } from "../../types/enums";
 
 const router = Router();
 

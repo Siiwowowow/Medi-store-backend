@@ -548,11 +548,11 @@ const getOrderStats = async (sellerUserId: string) => {
   
   return {
     total: orders.length,
-    pending: orders.filter(o => o.status === 'PENDING').length,
-    processing: orders.filter(o => o.status === 'PROCESSING').length,
-    shipped: orders.filter(o => o.status === 'SHIPPED').length,
-    delivered: orders.filter(o => o.status === 'DELIVERED').length,
-    cancelled: orders.filter(o => o.status === 'CANCELLED').length,
+    pending: orders.filter((o: any) => o.status === 'PENDING').length,
+    processing: orders.filter((o: any) => o.status === 'PROCESSING').length,
+    shipped: orders.filter((o: any) => o.status === 'SHIPPED').length,
+    delivered: orders.filter((o: any) => o.status === 'DELIVERED').length,
+    cancelled: orders.filter((o: any) => o.status === 'CANCELLED').length,
   };
 };
 

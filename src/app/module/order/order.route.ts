@@ -1,8 +1,8 @@
 //src>app>module>order>order.route.ts
 import { Router } from "express";
-import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { OrderController } from "./order.controller";
+import { Role } from "../../types/enums";
 
 const router = Router();
 

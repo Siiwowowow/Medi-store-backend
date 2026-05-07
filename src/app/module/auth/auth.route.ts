@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { AuthController } from "./auth.controller";
 import { checkAuth } from "../../middleware/checkAuth";
-import { Role } from "../../../generated/prisma/enums";
 import { multerUpload } from "../../config/multer.config";
+import { Role } from "../../types/enums";
 
 const router = Router();
 

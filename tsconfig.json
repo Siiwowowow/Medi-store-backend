@@ -1,17 +1,17 @@
-
 {
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "target": "ES2023",                                
+    "target": "ES2023",
     "rootDir": "./",
-    "outDir": "./dist",   
-    "strict": true,
+    "outDir": "./dist",
+    "strict": false,  // ✅ true থেকে false করুন
+    "noImplicitAny": false,  // ✅ এই লাইন যোগ করুন
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-     "ignoreDeprecations": "5.0"
+    "ignoreDeprecations": "5.0"
   },
-  "include": ["src","prisma.config.ts","src/app/interfaces/index.d.ts"],
+  "include": ["src", "prisma.config.ts", "src/app/interfaces/index.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

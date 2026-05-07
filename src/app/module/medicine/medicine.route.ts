@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { MedicineController } from "./medicine.controller";
 import { handleProductPhotoUpload } from "../../middleware/fileUpload.middleware";
+import { Role } from "../../types/enums";
 
 const router = Router();
 const sellerRouter = Router();

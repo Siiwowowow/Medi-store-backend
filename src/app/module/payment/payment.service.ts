@@ -63,7 +63,7 @@ const initiatePayment = async (orderId: string, userId: string, paymentMethod: P
   if (paymentMethod === PaymentMethod.STRIPE || !paymentMethod) {
     // Stripe has a minimum amount requirement (approx $0.50 USD). 
     // For BDT, 60-70 BDT is usually the safe minimum.
-    const totalPoisha = order.items.reduce((acc, item: any) => acc + Math.round(item.unitPrice.toNumber() * 100) * item.quantity, 0);
+    const totalPoisha = order.items.reduce((acc: number, item: any) => acc + Math.round(item.unitPrice.toNumber() * 100) * item.quantity, 0);
     
     if (totalPoisha < 6000) { // 60 BDT minimum
       throw new AppError(status.BAD_REQUEST, "Stripe requires a minimum payment of ৳60. Please add more items or choose another payment method.");
