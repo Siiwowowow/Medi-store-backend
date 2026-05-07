@@ -41,8 +41,8 @@ const removeFromWishlist = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     httpCode: statusCode.OK,
     success: true,
-    message: result.message,
-    data: null,
+    message: "Wishlist item removed successfully",
+    data: result,
   });
 });
 
