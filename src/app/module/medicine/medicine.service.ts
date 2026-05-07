@@ -115,7 +115,9 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     prisma.medicine.findMany({
       where,
       include: {
-        category: true,
+        category: {
+          select: { id: true, name: true }
+        },
         _count: {
           select: { 
             reviews: true,
@@ -125,7 +127,8 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
         reviews: {
           select: {
             rating: true
-          }
+          },
+          take: 50 // Limit reviews per product for stats to prevent massive data transfer
         }
       },
       skip,
@@ -135,15 +138,17 @@ const getAllMedicines = async (filters: IMedicineFilters) => {
     prisma.medicine.count({ where }),
   ]);
   
-  // Calculate stats in memory to avoid N+1 aggregate calls
   const medicinesWithStats = medicines.map((medicine) => {
     const ratings = medicine.reviews.map(r => r.rating);
     const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
     
+    // Remove reviews from the response to save bandwidth
+    const { reviews, ...medicineData } = medicine as any;
+    
     return {
-      ...medicine,
+      ...medicineData,
       price: (medicine.price as any).toNumber(),
-      avgRating,
+      avgRating: Number(avgRating.toFixed(1)),
       reviewCount: medicine._count.reviews,
       orderCount: medicine._count.orderItems,
     };
