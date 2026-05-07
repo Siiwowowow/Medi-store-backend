@@ -3,7 +3,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ES2023",
-    "rootDir": "./",
+    "rootDir": "./src",
     "outDir": "./dist",
     "strict": false,
     "noImplicitAny": false,
