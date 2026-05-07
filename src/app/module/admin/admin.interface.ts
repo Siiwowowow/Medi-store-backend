@@ -1,4 +1,4 @@
-import { Role, UserStatus } from "../../../generated/prisma/enums"; // 👈 Capital U
+import { Role, UserStatus } from "../../types/enums";
 
 export interface IUpdateAdminPayload {
     admin?: {

@@ -1,7 +1,7 @@
-import { Role, UserStatus } from "../../generated/prisma/enums";
 import { envVars } from "../config/env";
 import { hashPassword } from "better-auth/crypto";
 import { prisma } from "../lib/prisma";
+import { Role, UserStatus } from "../types/enums";
 
 // SUPER_ADMIN creation part - remove unused 'result' variable
 

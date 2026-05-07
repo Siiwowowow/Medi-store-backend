@@ -5,7 +5,8 @@ import { prisma } from "../../lib/prisma";
 import { stripe } from "../../config/stripe.config";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { PaymentStatus, PaymentMethod } from "../../../generated/prisma/enums";
+import { PaymentMethod, PaymentStatus } from "../../types/enums";
+
 
 
 const initiatePayment = async (orderId: string, userId: string, paymentMethod: PaymentMethod = PaymentMethod.STRIPE) => {

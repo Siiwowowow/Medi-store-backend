@@ -11,7 +11,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import { hashPassword, verifyPassword } from "better-auth/crypto";
 import { randomBytes } from "node:crypto";
-import { Role, UserStatus } from "../../../generated/prisma/enums";
+import { Role, UserStatus } from "../../types/enums";
 
 const SESSION_DURATION_MS = 60 * 60 * 24 * 1000;
 

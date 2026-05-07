@@ -6,7 +6,7 @@ import { prisma } from "../../lib/prisma";
 import { QueryBuilder } from "../../utils/queryBuilder";
 import { IUpdateAdminPayload, IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
 import AppError from "../../errorHelpers/AppError";
-import { Role, UserStatus } from "../../../generated/prisma/enums";
+import { Role, UserStatus } from "../../types/enums";
 
 const getAllAdmins = async () => {
     const admins = await prisma.admin.findMany({

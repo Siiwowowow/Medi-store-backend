@@ -6,7 +6,7 @@ import AppError from "../errorHelpers/AppError";
 import { auth } from "../lib/auth";
 import { CookieUtils } from "../utils/cookie";
 import { jwtUtils } from "../utils/jwt";
-import { Role, UserStatus } from "../../generated/prisma/enums";  // 👈 UserStatus (capital U)
+import { Role, UserStatus } from "../types/enums";
 
 export const checkAuth =
   (...authRoles: Role[]) =>
