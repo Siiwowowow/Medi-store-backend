@@ -7,12 +7,11 @@ let server: Server;
 
 const bootstrap = async () => {
     try {
-        // 🚀 Seeding disabled for performance. Run manually if needed.
         await seedSuperAdmin();
         await seedAdmin();
         await seedSampleSeller();
         await seedSampleCustomer();
-        
+
         server = app.listen(envVars.PORT, () => {
             console.log(`Server is running on http://localhost:${envVars.PORT}`);
         });

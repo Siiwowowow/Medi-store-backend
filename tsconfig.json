@@ -5,13 +5,17 @@
     "target": "ES2023",
     "rootDir": "./",
     "outDir": "./dist",
-    "strict": false,  // ✅ true থেকে false করুন
-    "noImplicitAny": false,  // ✅ এই লাইন যোগ করুন
+    "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "ignoreDeprecations": "5.0"
+    "baseUrl": ".",
+    "paths": {
+      "../../generated/prisma/client": ["./src/generated/prisma/client"],
+      "../../generated/prisma/enums": ["./src/generated/prisma/enums"]
+    }
   },
-  "include": ["src", "prisma.config.ts", "src/app/interfaces/index.d.ts"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
