@@ -63,7 +63,7 @@ const initiatePayment = async (orderId: string, userId: string, paymentMethod: P
   if (paymentMethod === PaymentMethod.STRIPE || !paymentMethod) {
     // Stripe has a minimum amount requirement (approx $0.50 USD). 
     // For BDT, 60-70 BDT is usually the safe minimum.
-    const totalPoisha = order.items.reduce((acc, item) => acc + Math.round(item.unitPrice.toNumber() * 100) * item.quantity, 0);
+    const totalPoisha = order.items.reduce((acc, item: any) => acc + Math.round(item.unitPrice.toNumber() * 100) * item.quantity, 0);
     
     if (totalPoisha < 6000) { // 60 BDT minimum
       throw new AppError(status.BAD_REQUEST, "Stripe requires a minimum payment of ৳60. Please add more items or choose another payment method.");
@@ -73,7 +73,7 @@ const initiatePayment = async (orderId: string, userId: string, paymentMethod: P
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
-        line_items: order.items.map((item) => ({
+        line_items: order.items.map((item: any) => ({
           price_data: {
             currency: "bdt",
             product_data: {
@@ -129,7 +129,7 @@ const verifyPayment = async (sessionId: string) => {
     const paymentId = session.metadata?.paymentId;
 
     if (orderId && paymentId) {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         const payment = await tx.payment.findUnique({ where: { id: paymentId } });
         
         if (payment && payment.status !== PaymentStatus.COMPLETED) {
@@ -187,7 +187,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
         return { message: "Missing orderId or paymentId in session metadata" };
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // Update Payment record
         await tx.payment.update({
           where: { id: paymentId },

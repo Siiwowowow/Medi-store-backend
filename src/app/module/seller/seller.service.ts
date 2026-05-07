@@ -75,7 +75,7 @@ const getAllSellers = async (query: any = {}) => {
   ]);
   
   // Format sellers with status
-  const formattedSellers = sellers.map(seller => ({
+  const formattedSellers = sellers.map((seller: any) => ({
     id: seller.id,
     userId: seller.userId,
     shopName: seller.shopName,
@@ -234,7 +234,7 @@ const rejectSeller = async (sellerId: string, adminUserId: string) => {
   
   // Optional: Delete the seller or just mark as rejected
   // Here we delete the seller profile and user account
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.seller.delete({ where: { id: sellerId } });
     await tx.user.delete({ where: { id: seller.userId } });
   });

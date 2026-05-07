@@ -25,7 +25,7 @@ const getWishlist = async (customerUserId: string) => {
     orderBy: { createdAt: 'desc' }
   });
   
-  return wishlist.map(item => ({
+  return wishlist.map((item: any) => ({
     id: item.id,
     medicineId: item.medicineId,
     name: item.medicine.name,
