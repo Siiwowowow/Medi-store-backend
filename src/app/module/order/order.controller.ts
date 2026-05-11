@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Request, Response } from "express";
 import statusCode from "http-status";
@@ -9,7 +11,7 @@ import { getParamId } from "../../utils/param.utils.js";
 import { QueryBuilder } from "../../utils/queryBuilder.js";
 import { prisma } from "../../lib/prisma.js";
 
-const createOrder = catchAsync(async (req: Request, res: Response) => {
+const createOrder = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const result = await OrderService.createOrder(user.userId, req.body);
   
@@ -21,7 +23,7 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getMyOrders = catchAsync(async (req: Request, res: Response) => {
+const getMyOrders = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const { status, page, limit } = req.query;
   
@@ -40,7 +42,7 @@ const getMyOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getOrderDetails = catchAsync(async (req: Request, res: Response) => {
+const getOrderDetails = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const orderId = getParamId(req.params.id);
   
@@ -63,7 +65,7 @@ const getOrderDetails = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const cancelOrder = catchAsync(async (req: Request, res: Response) => {
+const cancelOrder = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const orderId = getParamId(req.params.id);
   const result = await OrderService.cancelOrder(orderId, user.userId);
@@ -76,7 +78,7 @@ const cancelOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getSellerOrders = catchAsync(async (req: Request, res: Response) => {
+const getSellerOrders = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const { status, page, limit } = req.query;
   
@@ -95,7 +97,7 @@ const getSellerOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+const updateOrderStatus = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const orderId = getParamId(req.params.id);
   const result = await OrderService.updateOrderStatus(orderId, user.userId, req.body);
@@ -108,7 +110,7 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getOrderStats = catchAsync(async (req: Request, res: Response) => {
+const getOrderStats = catchAsync(async (req: any, res: any) => {
   const user = req.user as IRequestUser;
   const result = await OrderService.getOrderStats(user.userId);
   
@@ -120,7 +122,7 @@ const getOrderStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllOrders = catchAsync(async (req: Request, res: Response) => {
+const getAllOrders = catchAsync(async (req: any, res: any) => {
   const queryBuilder = new QueryBuilder(
     prisma.order,
     req.query,
@@ -162,7 +164,7 @@ const getAllOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const adminUpdateOrderStatus = catchAsync(async (req: Request, res: Response) => {
+const adminUpdateOrderStatus = catchAsync(async (req: any, res: any) => {
   const orderId = getParamId(req.params.id);
   const result = await OrderService.adminUpdateOrderStatus(orderId, req.body);
   

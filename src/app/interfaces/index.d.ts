@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { IRequestUser } from "./requestUser.interface.js";
 
 declare global {

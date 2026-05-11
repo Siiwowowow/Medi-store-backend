@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Role } from "../types/enums.js";
 
 export interface IRequestUser{
