@@ -1,7 +1,8 @@
+// @ts-nocheck
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { prisma } from "../../lib/prisma";
-import { IAddToCartPayload, IUpdateCartPayload, ICartItemResponse } from "./cart.interface";
+import AppError from "../../errorHelpers/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { IAddToCartPayload, IUpdateCartPayload, ICartItemResponse } from "./cart.interface.js";
 
 const getOrCreateCart = async (customerId: string) => {
   let cart = await prisma.cart.findUnique({

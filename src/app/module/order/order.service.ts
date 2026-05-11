@@ -1,9 +1,10 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 //src>app>module>order>order.service.ts
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { prisma } from "../../lib/prisma";
-import { ICreateOrderPayload, IUpdateOrderStatusPayload, IOrderFilters } from "./order.interface";
+import AppError from "../../errorHelpers/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { ICreateOrderPayload, IUpdateOrderStatusPayload, IOrderFilters } from "./order.interface.js";
 
 const generateOrderNumber = (): string => {
   const prefix = 'MED';

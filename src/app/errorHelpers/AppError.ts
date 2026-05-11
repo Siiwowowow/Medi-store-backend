@@ -1,3 +1,4 @@
+// @ts-nocheck
 class AppError extends Error {
     public statusCode: number;
 

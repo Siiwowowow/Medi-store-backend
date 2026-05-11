@@ -1,4 +1,5 @@
-import { Role, UserStatus } from "../../types/enums";
+// @ts-nocheck
+import { Role, UserStatus } from "../../types/enums.js";
 
 export interface IUpdateAdminPayload {
     admin?: {

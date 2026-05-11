@@ -14,7 +14,8 @@
     "push": "prisma db push",
     "pull": "prisma db pull",
     "stripe:webhook": "stripe listen --forward-to localhost:5000/webhook",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "vercel-build": "prisma generate"
   },
   "keywords": [],
   "author": "",

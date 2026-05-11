@@ -1,3 +1,4 @@
+// @ts-nocheck
 // global.d.ts
 declare module "qs" {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

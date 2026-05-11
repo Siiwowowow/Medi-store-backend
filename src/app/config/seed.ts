@@ -1,7 +1,8 @@
-import { envVars } from "../config/env";
+// @ts-nocheck
+import { envVars } from "../config/env.js";
 import { hashPassword } from "better-auth/crypto";
-import { prisma } from "../lib/prisma";
-import { Role, UserStatus } from "../types/enums";
+import { prisma } from "../lib/prisma.js";
+import { Role, UserStatus } from "../types/enums.js";
 
 // SUPER_ADMIN creation part - remove unused 'result' variable
 

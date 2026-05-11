@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import status from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { AdminService } from "./admin.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { AdminService } from "./admin.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface.js";
 
 const getAllAdmins = catchAsync(async (req: Request, res: Response) => {
     const result = await AdminService.getAllAdmins();

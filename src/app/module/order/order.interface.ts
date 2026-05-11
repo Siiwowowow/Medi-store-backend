@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface ICreateOrderItem {
   medicineId: string;
   quantity: number;

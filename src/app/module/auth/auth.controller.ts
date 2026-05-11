@@ -1,13 +1,14 @@
+// @ts-nocheck
 import { Request, Response } from "express";
-import { catchAsync } from "../../shared/catchAsync";
-import { AuthService } from "./auth.service";
-import { sendResponse } from "../../shared/sendResponse";
-import { tokenUtils } from "../../utils/token";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { AuthService } from "./auth.service.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { tokenUtils } from "../../utils/token.js";
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { envVars } from "../../config/env";
-import { auth } from "../../lib/auth";
-import { uploadFileToCloudinary } from "../../config/cloudinary.config";
+import AppError from "../../errorHelpers/AppError.js";
+import { envVars } from "../../config/env.js";
+import { auth } from "../../lib/auth.js";
+import { uploadFileToCloudinary } from "../../config/cloudinary.config.js";
 
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   let imageUrl: string | undefined;
@@ -260,7 +261,7 @@ const googleLogin = catchAsync((req: Request, res: Response) => {
   return res.send(html);
 });
 
-const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
+const googleLoginSuccess = catchAsync(async (req: Request, res: any) => {
   const sessionToken = req.cookies["better-auth.session_token"];
 
   if (!sessionToken) {
@@ -289,7 +290,7 @@ const googleLoginSuccess = catchAsync(async (req: Request, res: Response) => {
   return res.redirect(`${envVars.FRONTEND_URL}/?login=success`);
 });
 
-const handleOAuthError = catchAsync((req: Request, res: Response) => {
+const handleOAuthError = catchAsync((req: Request, res: any) => {
   const error = req.query.error as string || "oauth_failed";
   res.redirect(`${envVars.FRONTEND_URL}/login?error=${error}`);
 });

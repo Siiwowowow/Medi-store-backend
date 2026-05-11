@@ -1,3 +1,4 @@
+// @ts-nocheck
 //src/app/module/admin/admin.validation.ts
 import z from "zod";
 

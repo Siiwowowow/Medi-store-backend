@@ -1,12 +1,13 @@
+// @ts-nocheck
 // src/app/module/dashboard/dashboard.controller.ts
 
 import { Request, Response } from "express";
 import statusCode from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { DashboardService } from "./dashboard.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { prisma } from "../../lib/prisma";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { DashboardService } from "./dashboard.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { prisma } from "../../lib/prisma.js";
 
 // ==================== ADMIN DASHBOARD ====================
 

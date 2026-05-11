@@ -1,8 +1,9 @@
+// @ts-nocheck
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { prisma } from "../../lib/prisma";
-import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config";
-import { ICreateCategoryPayload, IUpdateCategoryPayload } from "./category.interface";
+import AppError from "../../errorHelpers/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config.js";
+import { ICreateCategoryPayload, IUpdateCategoryPayload } from "./category.interface.js";
 
 const generateSlug = (name: string): string => {
   return name

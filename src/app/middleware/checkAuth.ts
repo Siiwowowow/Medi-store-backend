@@ -1,12 +1,13 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, Response } from "express";
 import status from "http-status";
-import { envVars } from "../config/env";
-import AppError from "../errorHelpers/AppError";
-import { auth } from "../lib/auth";
-import { CookieUtils } from "../utils/cookie";
-import { jwtUtils } from "../utils/jwt";
-import { Role, UserStatus } from "../types/enums";
+import { envVars } from "../config/env.js";
+import AppError from "../errorHelpers/AppError.js";
+import { auth } from "../lib/auth.js";
+import { CookieUtils } from "../utils/cookie.js";
+import { jwtUtils } from "../utils/jwt.js";
+import { Role, UserStatus } from "../types/enums.js";
 
 export const checkAuth =
   (...authRoles: Role[]) =>

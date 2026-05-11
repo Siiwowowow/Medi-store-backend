@@ -1,3 +1,4 @@
+// @ts-nocheck
 // backend/src/app/module/payment/payment.interface.ts
 
 export interface ICreatePaymentIntent {

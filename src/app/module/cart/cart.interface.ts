@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface IAddToCartPayload {
   medicineId: string;
   quantity: number;

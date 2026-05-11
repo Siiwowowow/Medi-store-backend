@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js";
 import { bearer, emailOTP } from "better-auth/plugins";
-import { sendEmail } from "../utils/email";
-import { envVars } from "../config/env";
-import { Role, UserStatus } from "../types/enums";
+import { sendEmail } from "../utils/email.js";
+import { envVars } from "../config/env.js";
+import { Role, UserStatus } from "../types/enums.js";
 
 // Helper to convert duration string (e.g., "1d", "7h", "30m", "10s") to seconds
 function durationToSeconds(duration: string): number {

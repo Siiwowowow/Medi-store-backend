@@ -1,17 +1,18 @@
+
 import { Router } from "express";
-import { AuthRouters } from "../module/auth/auth.route";
-import { UserRoutes } from "../module/user/user.route";
-import { AdminRoutes } from "../module/admin/admin.route";
-import { CategoryRoutes } from "../module/category/category.route";
-import { MedicineRoutes } from "../module/medicine/medicine.route";
-import { OrderRoutes } from "../module/order/order.route";
-import { CartRoutes } from "../module/cart/cart.route";
-import { ReviewRoutes } from "../module/review/review.route";
-import { SellerRoutes } from "../module/seller/seller.route";
-import { DashboardRoutes } from "../module/dashboard/dashboard.route";
-import { WishlistRoutes } from "../module/wishlist/wishlist.route";
-import { SearchRoutes } from "../module/search/search.route";
-import { PaymentRoutes } from "../module/payment/payment.route";
+import { AuthRouters } from "../module/auth/auth.route.js";
+import { UserRoutes } from "../module/user/user.route.js";
+import { AdminRoutes } from "../module/admin/admin.route.js";
+import { CategoryRoutes } from "../module/category/category.route.js";
+import { MedicineRoutes } from "../module/medicine/medicine.route.js";
+import { OrderRoutes } from "../module/order/order.route.js";
+import { CartRoutes } from "../module/cart/cart.route.js";
+import { ReviewRoutes } from "../module/review/review.route.js";
+import { SellerRoutes } from "../module/seller/seller.route.js";
+import { DashboardRoutes } from "../module/dashboard/dashboard.route.js";
+import { WishlistRoutes } from "../module/wishlist/wishlist.route.js";
+import { SearchRoutes } from "../module/search/search.route.js";
+import { PaymentRoutes } from "../module/payment/payment.route.js";
 
 const router = Router();
 

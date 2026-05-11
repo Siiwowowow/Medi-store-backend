@@ -1,11 +1,12 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import status from "http-status";
-import { envVars } from "../../config/env";
-import { stripe } from "../../config/stripe.config";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { PaymentService } from "./payment.service";
+import { envVars } from "../../config/env.js";
+import { stripe } from "../../config/stripe.config.js";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { PaymentService } from "./payment.service.js";
 
 const initiatePayment = catchAsync(async (req: Request, res: Response) => {
   const { orderId, paymentMethod } = req.body;

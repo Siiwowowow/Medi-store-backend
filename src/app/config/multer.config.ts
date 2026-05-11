@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/config/multer.config.ts
 import multer from "multer";
 

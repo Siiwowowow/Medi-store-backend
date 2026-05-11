@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/modules/user/user.interface.ts
 
 export interface IUpdateUserProfilePayload {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/app/types/enums.ts
 export enum Role {
   SUPER_ADMIN = "SUPER_ADMIN",

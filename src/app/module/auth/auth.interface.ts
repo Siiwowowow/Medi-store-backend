@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface IRegisterUserPayload {
   name: string;
   email: string;

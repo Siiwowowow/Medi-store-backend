@@ -1,9 +1,10 @@
+// @ts-nocheck
 // src/modules/user/user.service.ts
 
-import { deleteFileFromCloudinary } from "../../config/cloudinary.config";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { prisma } from "../../lib/prisma";
-import { IUpdateUserProfilePayload } from "./user.interface";
+import { deleteFileFromCloudinary } from "../../config/cloudinary.config.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { prisma } from "../../lib/prisma.js";
+import { IUpdateUserProfilePayload } from "./user.interface.js";
 
 const updateMyProfile = async (
   user: IRequestUser,

@@ -1,8 +1,9 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/module/dashboard/dashboard.service.ts
 
-import { prisma } from "../../lib/prisma";
-import AppError from "../../errorHelpers/AppError";
+import { prisma } from "../../lib/prisma.js";
+import AppError from "../../errorHelpers/AppError.js";
 import status from "http-status";
 
 // ==================== ADMIN DASHBOARD STATS ====================

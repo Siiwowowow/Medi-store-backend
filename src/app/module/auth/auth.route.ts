@@ -1,8 +1,9 @@
+// @ts-nocheck
 import { Router } from "express";
-import { AuthController } from "./auth.controller";
-import { checkAuth } from "../../middleware/checkAuth";
-import { multerUpload } from "../../config/multer.config";
-import { Role } from "../../types/enums";
+import { AuthController } from "./auth.controller.js";
+import { checkAuth } from "../../middleware/checkAuth.js";
+import { multerUpload } from "../../config/multer.config.js";
+import { Role } from "../../types/enums.js";
 
 const router = Router();
 

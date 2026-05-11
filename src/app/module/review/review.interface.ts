@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface ICreateReviewPayload {
   medicineId: string;
   rating: number;

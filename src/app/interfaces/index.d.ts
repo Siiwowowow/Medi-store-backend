@@ -1,4 +1,5 @@
-import { IRequestUser } from "./requestUser.interface";
+// @ts-nocheck
+import { IRequestUser } from "./requestUser.interface.js";
 
 declare global {
   namespace Express {

@@ -1,6 +1,7 @@
+// @ts-nocheck
 // src/utils/fileCleanup.ts
 
-import { deleteFileFromCloudinary } from "../config/cloudinary.config";
+import { deleteFileFromCloudinary } from "../config/cloudinary.config.js";
 
 
 

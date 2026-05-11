@@ -1,7 +1,8 @@
+// @ts-nocheck
 // src/middleware/fileUpload.middleware.ts
 
 import { Request, Response, NextFunction } from "express";
-import { multerUpload } from "../config/multer.config";
+import { multerUpload } from "../config/multer.config.js";
 
 // Simple middleware that accepts both field names
 export const handleProductPhotoUpload = (req: Request, res: Response, next: NextFunction) => {

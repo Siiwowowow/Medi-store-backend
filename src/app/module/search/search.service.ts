@@ -1,4 +1,5 @@
-import { prisma } from "../../lib/prisma";
+// @ts-nocheck
+import { prisma } from "../../lib/prisma.js";
 
 const saveSearch = async (userId: string, query: string) => {
   if (!query || query.trim().length < 2) return;

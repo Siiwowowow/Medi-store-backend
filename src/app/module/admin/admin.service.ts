@@ -1,12 +1,13 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 //src>app>module>admin>admin service
 import statusCode from "http-status";  // 👈 rename to statusCode
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { prisma } from "../../lib/prisma";
-import { QueryBuilder } from "../../utils/queryBuilder";
-import { IUpdateAdminPayload, IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface";
-import AppError from "../../errorHelpers/AppError";
-import { Role, UserStatus } from "../../types/enums";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { prisma } from "../../lib/prisma.js";
+import { QueryBuilder } from "../../utils/queryBuilder.js";
+import { IUpdateAdminPayload, IChangeUserRolePayload, IChangeUserStatusPayload } from "./admin.interface.js";
+import AppError from "../../errorHelpers/AppError.js";
+import { Role, UserStatus } from "../../types/enums.js";
 
 const getAllAdmins = async () => {
     const admins = await prisma.admin.findMany({

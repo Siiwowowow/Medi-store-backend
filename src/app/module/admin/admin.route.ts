@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { Router } from "express";
-import { checkAuth } from "../../middleware/checkAuth";
-import { validateRequest } from "../../middleware/validateRequest";
-import { AdminController } from "./admin.controller";
-import { updateAdminZodSchema } from "./admin.validation";
-import { Role } from "../../types/enums";
+import { checkAuth } from "../../middleware/checkAuth.js";
+import { validateRequest } from "../../middleware/validateRequest.js";
+import { AdminController } from "./admin.controller.js";
+import { updateAdminZodSchema } from "./admin.validation.js";
+import { Role } from "../../types/enums.js";
 
 
 

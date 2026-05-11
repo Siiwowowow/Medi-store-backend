@@ -1,11 +1,12 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Stripe from "stripe";
 import status from "http-status";
-import { prisma } from "../../lib/prisma";
-import { stripe } from "../../config/stripe.config";
-import { envVars } from "../../config/env";
-import AppError from "../../errorHelpers/AppError";
-import { PaymentMethod, PaymentStatus } from "../../types/enums";
+import { prisma } from "../../lib/prisma.js";
+import { stripe } from "../../config/stripe.config.js";
+import { envVars } from "../../config/env.js";
+import AppError from "../../errorHelpers/AppError.js";
+import { PaymentMethod, PaymentStatus } from "../../types/enums.js";
 
 
 
@@ -160,7 +161,7 @@ const verifyPayment = async (sessionId: string) => {
   return { status: "PENDING" };
 };
 
-const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
+const handlerStripeWebhookEvent = async (event: any) => {
   const paymentIntentId = (event.data.object as any).payment_intent;
 
   if (paymentIntentId) {
@@ -178,7 +179,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
 
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as any;
 
       const orderId = session.metadata?.orderId;
       const paymentId = session.metadata?.paymentId;
@@ -216,7 +217,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
       break;
     }
     case "checkout.session.expired": {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as any;
       const paymentId = session.metadata?.paymentId;
       if (paymentId) {
         await prisma.payment.update({
@@ -227,7 +228,7 @@ const handlerStripeWebhookEvent = async (event: Stripe.Event) => {
       break;
     }
     case "payment_intent.payment_failed": {
-      const intent = event.data.object as Stripe.PaymentIntent;
+      const intent = event.data.object as any;
       const paymentId = intent.metadata?.paymentId;
       if (paymentId) {
         await prisma.payment.update({

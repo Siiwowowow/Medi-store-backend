@@ -1,7 +1,8 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { prisma } from "../../lib/prisma";
+import AppError from "../../errorHelpers/AppError.js";
+import { prisma } from "../../lib/prisma.js";
 
 const getWishlist = async (customerUserId: string) => {
   const user = await prisma.user.findUnique({

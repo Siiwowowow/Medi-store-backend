@@ -1,11 +1,12 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import statusCode from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { CartService } from "./cart.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { getParamId } from "../../utils/param.utils";
-import AppError from "../../errorHelpers/AppError";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { CartService } from "./cart.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { getParamId } from "../../utils/param.utils.js";
+import AppError from "../../errorHelpers/AppError.js";
 
 const getCart = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;

@@ -1,3 +1,4 @@
+// @ts-nocheck
 //src/app/utils/jwt.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";

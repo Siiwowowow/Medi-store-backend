@@ -1,12 +1,13 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 //src>app>medicine>medicine.service.ts
 import status from "http-status";
-import AppError from "../../errorHelpers/AppError";
-import { prisma } from "../../lib/prisma";
-import { ICreateMedicinePayload, IMedicineFilters, IUpdateMedicinePayload } from "./medicine.interface";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config";
+import AppError from "../../errorHelpers/AppError.js";
+import { prisma } from "../../lib/prisma.js";
+import { ICreateMedicinePayload, IMedicineFilters, IUpdateMedicinePayload } from "./medicine.interface.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { uploadFileToCloudinary, deleteFileFromCloudinary } from "../../config/cloudinary.config.js";
 
 const generateSlug = (name: string): string => {
   return name

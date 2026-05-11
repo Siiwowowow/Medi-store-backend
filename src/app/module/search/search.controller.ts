@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import statusCode from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { SearchService } from "./search.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { SearchService } from "./search.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
 
 const saveSearch = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;

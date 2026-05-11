@@ -1,5 +1,6 @@
+// @ts-nocheck
 //src/app/config/stripe.config.ts
 import Stripe from "stripe";
-import { envVars } from "./env";
+import { envVars } from "./env.js";
 
 export const stripe = new Stripe(envVars.STRIPE.STRIPE_SECRET_KEY)

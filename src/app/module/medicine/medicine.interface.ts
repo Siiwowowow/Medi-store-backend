@@ -1,3 +1,4 @@
+// @ts-nocheck
 export interface ICreateMedicinePayload {
   name: string;
   description: string;

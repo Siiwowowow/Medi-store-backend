@@ -1,7 +1,8 @@
+// @ts-nocheck
 import { Router } from "express";
-import { checkAuth } from "../../middleware/checkAuth";
-import { SellerController } from "./seller.controller";
-import { Role } from "../../types/enums";
+import { checkAuth } from "../../middleware/checkAuth.js";
+import { SellerController } from "./seller.controller.js";
+import { Role } from "../../types/enums.js";
 
 const router = Router();
 

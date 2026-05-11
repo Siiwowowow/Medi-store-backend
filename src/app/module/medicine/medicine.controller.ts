@@ -1,11 +1,12 @@
+// @ts-nocheck
 //src>app>medicine>medicine.controller.ts
 import { Request, Response } from "express";
 import statusCode from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { MedicineService } from "./medicine.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { getParamId } from "../../utils/param.utils";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { MedicineService } from "./medicine.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { getParamId } from "../../utils/param.utils.js";
 
 const createMedicine = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;

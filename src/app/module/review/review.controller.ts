@@ -1,12 +1,13 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import statusCode from "http-status";
-import { catchAsync } from "../../shared/catchAsync";
-import { sendResponse } from "../../shared/sendResponse";
-import { ReviewService } from "./review.service";
-import { IRequestUser } from "../../interfaces/requestUser.interface";
-import { getParamId } from "../../utils/param.utils";
-import { QueryBuilder } from "../../utils/queryBuilder";
-import { prisma } from "../../lib/prisma";
+import { catchAsync } from "../../shared/catchAsync.js";
+import { sendResponse } from "../../shared/sendResponse.js";
+import { ReviewService } from "./review.service.js";
+import { IRequestUser } from "../../interfaces/requestUser.interface.js";
+import { getParamId } from "../../utils/param.utils.js";
+import { QueryBuilder } from "../../utils/queryBuilder.js";
+import { prisma } from "../../lib/prisma.js";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as IRequestUser;

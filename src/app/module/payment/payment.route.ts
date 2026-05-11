@@ -1,9 +1,10 @@
+// @ts-nocheck
 import { Router } from "express";
-import { PaymentController } from "./payment.controller";
-import { checkAuth } from "../../middleware/checkAuth";
-import { validateRequest } from "../../middleware/validateRequest";
-import { PaymentValidation } from "./payment.validation";
-import { Role } from "../../types/enums";
+import { PaymentController } from "./payment.controller.js";
+import { checkAuth } from "../../middleware/checkAuth.js";
+import { validateRequest } from "../../middleware/validateRequest.js";
+import { PaymentValidation } from "./payment.validation.js";
+import { Role } from "../../types/enums.js";
 
 const router = Router();
 

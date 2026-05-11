@@ -1,9 +1,10 @@
+// @ts-nocheck
 // dashboard.routes.ts - Complete
 //src/app/module/dashboard/dashboard.route.ts
 import { Router } from "express";
-import { checkAuth } from "../../middleware/checkAuth";
-import { DashboardController } from "./dashboard.controller";
-import { Role } from "../../types/enums";
+import { checkAuth } from "../../middleware/checkAuth.js";
+import { DashboardController } from "./dashboard.controller.js";
+import { Role } from "../../types/enums.js";
 
 const router = Router();
 

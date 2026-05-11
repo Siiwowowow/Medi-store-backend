@@ -1,6 +1,6 @@
 // 👇 সঠিক import path
 
-import { prisma } from "../app/lib/prisma";
+import { prisma } from "../app/lib/prisma.js";
 
 async function updateOrderCounts() {
   console.log("🔄 Updating order counts...");
